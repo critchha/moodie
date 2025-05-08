@@ -138,32 +138,52 @@ class PlexClient:
             logger.error(f"Failed to fetch movies: {e}")
             raise AppError(f"Failed to fetch movies: {e}", status_code=500)
 
-    def extract_movie_metadata(self, movie):
-        """Extract and normalize metadata from a Plex movie item for database storage."""
+    def normalize_metadata(self, item, media_type):
+        """Normalize metadata for both movies and TV shows, including external IDs and tags."""
         try:
-            genres = [genre.tag for genre in getattr(movie, 'genres', [])]
-            directors = [d.tag for d in getattr(movie, 'directors', [])]
-            writers = [w.tag for w in getattr(movie, 'writers', [])]
-            cast = [a.tag for a in getattr(movie, 'actors', [])]
-            poster = movie.posterUrl if hasattr(movie, 'posterUrl') else None
-            backdrop = movie.art if hasattr(movie, 'art') else None
+            genres = [genre.tag for genre in getattr(item, 'genres', [])]
+            cast = [a.tag for a in getattr(item, 'actors', [])]
+            poster = getattr(item, 'posterUrl', None)
+            backdrop = getattr(item, 'art', None)
+            external_ids = {}
+            # Try to extract external IDs (IMDB, TMDB, TVDB)
+            for guid in getattr(item, 'guids', []):
+                if 'imdb' in guid.id:
+                    external_ids['imdb'] = guid.id.split('//')[-1]
+                elif 'tmdb' in guid.id:
+                    external_ids['tmdb'] = guid.id.split('//')[-1]
+                elif 'tvdb' in guid.id:
+                    external_ids['tvdb'] = guid.id.split('//')[-1]
             return {
-                'plex_id': movie.ratingKey,
-                'title': movie.title,
-                'type': 'movie',
-                'year': getattr(movie, 'year', None),
+                'plex_id': getattr(item, 'ratingKey', None),
+                'title': getattr(item, 'title', None),
+                'type': media_type,
+                'year': getattr(item, 'year', None),
                 'genres': ','.join(genres),
-                'summary': getattr(movie, 'summary', None),
-                'duration': getattr(movie, 'duration', None) // 60000 if getattr(movie, 'duration', None) else None,
-                'directors': ','.join(directors),
-                'writers': ','.join(writers),
+                'summary': getattr(item, 'summary', None),
                 'cast': ','.join(cast),
                 'poster': poster,
                 'backdrop': backdrop,
+                'external_ids': external_ids,
             }
         except Exception as e:
-            logger.warning(f"Failed to extract metadata for movie: {e}")
+            logger.warning(f"Failed to normalize metadata: {e}")
             return {}
+
+    def extract_movie_metadata(self, movie):
+        base = self.normalize_metadata(movie, 'movie')
+        try:
+            directors = [d.tag for d in getattr(movie, 'directors', [])]
+            writers = [w.tag for w in getattr(movie, 'writers', [])]
+            base.update({
+                'duration': getattr(movie, 'duration', None) // 60000 if getattr(movie, 'duration', None) else None,
+                'directors': ','.join(directors),
+                'writers': ','.join(writers),
+            })
+            return base
+        except Exception as e:
+            logger.warning(f"Failed to extract movie-specific metadata: {e}")
+            return base
 
     def get_all_shows(self, section_name='TV Shows'):
         """Fetch all TV shows from the specified Plex library section, including seasons and episodes."""
@@ -180,12 +200,8 @@ class PlexClient:
             raise AppError(f"Failed to fetch TV shows: {e}", status_code=500)
 
     def extract_show_metadata(self, show):
-        """Extract and normalize metadata from a Plex show item, including seasons and episodes."""
+        base = self.normalize_metadata(show, 'show')
         try:
-            genres = [genre.tag for genre in getattr(show, 'genres', [])]
-            cast = [a.tag for a in getattr(show, 'actors', [])]
-            poster = show.posterUrl if hasattr(show, 'posterUrl') else None
-            backdrop = show.art if hasattr(show, 'art') else None
             # Extract seasons and episodes
             seasons = []
             for season in getattr(show, 'seasons', lambda: [])().values():
@@ -206,18 +222,8 @@ class PlexClient:
                     'season_number': getattr(season, 'index', None),
                     'episodes': episodes
                 })
-            return {
-                'plex_id': show.ratingKey,
-                'title': show.title,
-                'type': 'show',
-                'year': getattr(show, 'year', None),
-                'genres': ','.join(genres),
-                'summary': getattr(show, 'summary', None),
-                'cast': ','.join(cast),
-                'poster': poster,
-                'backdrop': backdrop,
-                'seasons': seasons
-            }
+            base['seasons'] = seasons
+            return base
         except Exception as e:
-            logger.warning(f"Failed to extract metadata for show: {e}")
-            return {} 
+            logger.warning(f"Failed to extract show-specific metadata: {e}")
+            return base 
