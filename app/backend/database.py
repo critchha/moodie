@@ -20,7 +20,9 @@ class Media(Base):
     duration = Column(Integer)  # in minutes
     last_updated = Column(DateTime, default=datetime.utcnow)
     # Relationship: one-to-many with Recommendation
-    recommendations = relationship('Recommendation', back_populates='media')
+    recommendations = relationship(
+        'Recommendation', back_populates='media', cascade='all, delete-orphan'
+    )
 
 class Recommendation(Base):
     """Stores recommendation history."""
@@ -34,7 +36,9 @@ class Recommendation(Base):
     score = Column(Float)  # model prediction score
     # Relationship: many-to-one with Media, one-to-many with Feedback
     media = relationship('Media', back_populates='recommendations')
-    feedback = relationship('Feedback', back_populates='recommendation')
+    feedback = relationship(
+        'Feedback', back_populates='recommendation', cascade='all, delete-orphan'
+    )
 
 class Feedback(Base):
     """Stores user feedback on recommendations."""
