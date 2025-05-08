@@ -38,4 +38,21 @@ class PlexClient:
     # Stub for future token refresh logic
     def refresh_token(self):
         """Stub for token refresh (not typically needed for Plex)."""
-        raise NotImplementedError("Token refresh not implemented for Plex.") 
+        raise NotImplementedError("Token refresh not implemented for Plex.")
+
+    def connect_direct(self, baseurl, token, timeout=10):
+        """Connect directly to a Plex server with URL and token."""
+        try:
+            self.server = PlexServer(baseurl, token, timeout=timeout)
+            return self.server
+        except Exception as e:
+            raise AppError(f"Failed to connect directly to Plex server: {e}", status_code=401)
+
+    def discover_servers(self):
+        """Stub for automatic server discovery on local networks (to be implemented)."""
+        raise NotImplementedError("Automatic server discovery not implemented.")
+
+    def prioritize_connection(self, servers):
+        """Stub for connection prioritization logic (local before remote)."""
+        # Example: sort servers by local/remote, prefer local
+        raise NotImplementedError("Connection prioritization not implemented.") 
