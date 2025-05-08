@@ -16,7 +16,7 @@
           "description": "Create a new Git repository and set up initial configuration",
           "dependencies": [],
           "details": "Initialize a new Git repository with 'git init', create a .gitignore file with appropriate entries for the project, and make an initial commit with basic README.md file. Configure remote repository on GitHub/GitLab if needed.",
-          "status": "pending"
+          "status": "done"
         },
         {
           "id": 2,
