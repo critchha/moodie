@@ -14,6 +14,10 @@ def create_app():
     app.register_blueprint(feedback_bp)
     app.register_blueprint(train_bp)
 
+    # Register error handlers
+    from app.backend.errors import register_error_handlers
+    register_error_handlers(app)
+
     @app.route('/')
     def index():
         return '<h1>Welcome to the Mood-Based Plex Recommender Backend</h1>'
