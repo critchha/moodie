@@ -2,9 +2,17 @@ from flask import Flask
 import os
 
 def create_app():
+    from app.backend.config import DevelopmentConfig, TestingConfig, ProductionConfig
     app = Flask(__name__, static_folder='../frontend', static_url_path='/')
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
-    app.config['DEBUG'] = True
+
+    # Select config class based on FLASK_ENV
+    env = os.environ.get('FLASK_ENV', 'development')
+    if env == 'production':
+        app.config.from_object(ProductionConfig)
+    elif env == 'testing':
+        app.config.from_object(TestingConfig)
+    else:
+        app.config.from_object(DevelopmentConfig)
 
     # Import and register blueprints
     from app.backend.routes.recommend import recommend_bp
@@ -26,4 +34,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=5000, debug=True) 
+    app.run(host='0.0.0.0', port=5000, debug=app.config['DEBUG']) 
