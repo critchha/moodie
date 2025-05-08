@@ -3,6 +3,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
+from sqlalchemy.exc import SQLAlchemyError
 
 Base = declarative_base()
 
@@ -45,4 +46,39 @@ class Feedback(Base):
     rating = Column(Integer)  # 1-5 stars
     timestamp = Column(DateTime, default=datetime.utcnow)
     # Relationship: many-to-one with Recommendation
-    recommendation = relationship('Recommendation', back_populates='feedback') 
+    recommendation = relationship('Recommendation', back_populates='feedback')
+
+def get_engine(database_url=None):
+    """Create a SQLAlchemy engine using the provided or default database URL."""
+    if database_url is None:
+        from app.backend.config import Config
+        database_url = Config.SQLALCHEMY_DATABASE_URI
+    try:
+        engine = create_engine(database_url, echo=False, future=True)
+        return engine
+    except SQLAlchemyError as e:
+        print(f"Error creating engine: {e}")
+        raise
+
+def init_db(engine=None):
+    """Initialize the database and create all tables."""
+    if engine is None:
+        engine = get_engine()
+    try:
+        Base.metadata.create_all(engine)
+        print("Database tables created successfully.")
+    except SQLAlchemyError as e:
+        print(f"Error initializing database: {e}")
+        raise
+
+def reset_db(engine=None):
+    """Drop all tables and recreate them (for development/testing only)."""
+    if engine is None:
+        engine = get_engine()
+    try:
+        Base.metadata.drop_all(engine)
+        Base.metadata.create_all(engine)
+        print("Database reset successfully.")
+    except SQLAlchemyError as e:
+        print(f"Error resetting database: {e}")
+        raise 
