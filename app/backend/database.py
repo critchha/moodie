@@ -1,7 +1,7 @@
 from sqlalchemy import (
     create_engine, Column, Integer, String, Text, DateTime, Float, Boolean, ForeignKey
 )
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -51,6 +51,68 @@ class Feedback(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     # Relationship: many-to-one with Recommendation
     recommendation = relationship('Recommendation', back_populates='feedback')
+
+# Session factory
+SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=None))
+
+def get_session(engine=None):
+    """Get a new SQLAlchemy session bound to the provided or default engine."""
+    if engine is None:
+        engine = get_engine()
+    SessionLocal.configure(bind=engine)
+    return SessionLocal()
+
+# CRUD utility functions
+
+def add_record(session, record):
+    """Add a record to the session and commit."""
+    try:
+        session.add(record)
+        session.commit()
+        session.refresh(record)
+        return record
+    except Exception as e:
+        session.rollback()
+        print(f"Error adding record: {e}")
+        raise
+
+def get_record_by_id(session, model, record_id):
+    """Get a record by primary key."""
+    return session.query(model).get(record_id)
+
+def get_all_records(session, model):
+    """Get all records for a model."""
+    return session.query(model).all()
+
+def update_record(session, record):
+    """Update a record and commit."""
+    try:
+        session.commit()
+        session.refresh(record)
+        return record
+    except Exception as e:
+        session.rollback()
+        print(f"Error updating record: {e}")
+        raise
+
+def delete_record(session, record):
+    """Delete a record and commit."""
+    try:
+        session.delete(record)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        print(f"Error deleting record: {e}")
+        raise
+
+# (Optional) Stubs for future migration, backup, and integrity checks
+def backup_database(engine=None, backup_path='backup.db'):
+    """Stub for backing up the database (to be implemented)."""
+    print(f"Backup not implemented. Would back up to {backup_path}.")
+
+def check_integrity(session):
+    """Stub for checking database integrity (to be implemented)."""
+    print("Integrity check not implemented.")
 
 def get_engine(database_url=None):
     """Create a SQLAlchemy engine using the provided or default database URL."""
