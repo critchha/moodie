@@ -61,4 +61,32 @@ window.addEventListener('DOMContentLoaded', () => {
   hideLoading();
   showSection('mood-form');
   // Add more initialization as needed
-}); 
+});
+
+// Mood questionnaire form validation
+const moodForm = document.getElementById('mood-questionnaire');
+if (moodForm) {
+  moodForm.addEventListener('submit', function (e) {
+    clearError();
+    let valid = true;
+    // Check required radio groups
+    ['mood', 'group', 'session'].forEach(name => {
+      const checked = moodForm.querySelector(`input[name="${name}"]:checked`);
+      if (!checked) {
+        valid = false;
+        showError(`Please select an option for "${name}".`);
+      }
+    });
+    if (!valid) {
+      e.preventDefault();
+      return false;
+    }
+    // Optionally: add more validation rules here
+  });
+  // Real-time validation feedback
+  moodForm.querySelectorAll('input[type="radio"]').forEach(input => {
+    input.addEventListener('change', () => {
+      clearError();
+    });
+  });
+} 
