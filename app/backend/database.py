@@ -4,6 +4,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
+import logging
 
 Base = declarative_base()
 
@@ -147,4 +148,45 @@ def reset_db(engine=None):
         print("Database reset successfully.")
     except SQLAlchemyError as e:
         print(f"Error resetting database: {e}")
+        raise
+
+def sync_plex_metadata(session, media_list, media_type='movie'):
+    """
+    Synchronize Plex metadata (movies or shows) with the database.
+    - Upsert (insert or update) each media item.
+    - Remove DB records not present in the latest Plex data.
+    - Maintain relationship integrity.
+    """
+    logger = logging.getLogger(__name__)
+    try:
+        # Build a set of current Plex IDs
+        plex_ids = set(item['plex_id'] for item in media_list if item.get('plex_id'))
+        # Query all existing media of this type
+        db_media = session.query(Media).filter_by(type=media_type).all()
+        db_ids = set(m.plex_id for m in db_media)
+        # Upsert each item
+        for item in media_list:
+            if not item.get('plex_id'):
+                continue
+            media = session.query(Media).filter_by(plex_id=item['plex_id']).first()
+            if media:
+                # Update existing
+                for k, v in item.items():
+                    setattr(media, k, v)
+                logger.info(f"Updated {media_type}: {item['title']}")
+            else:
+                # Insert new
+                media = Media(**item)
+                session.add(media)
+                logger.info(f"Inserted {media_type}: {item['title']}")
+        # Remove DB records not in Plex
+        for media in db_media:
+            if media.plex_id not in plex_ids:
+                logger.info(f"Deleting {media_type} not found in Plex: {media.title}")
+                session.delete(media)
+        session.commit()
+        logger.info(f"Sync complete for {media_type}s. {len(media_list)} items processed.")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error during {media_type} sync: {e}")
         raise 
