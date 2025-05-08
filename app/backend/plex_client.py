@@ -55,4 +55,29 @@ class PlexClient:
     def prioritize_connection(self, servers):
         """Stub for connection prioritization logic (local before remote)."""
         # Example: sort servers by local/remote, prefer local
-        raise NotImplementedError("Connection prioritization not implemented.") 
+        raise NotImplementedError("Connection prioritization not implemented.")
+
+    def check_connection_status(self):
+        """Check if the current Plex server connection is alive."""
+        if not self.server:
+            return False
+        try:
+            # Try to fetch server info as a health check
+            _ = self.server.friendlyName
+            return True
+        except Exception:
+            return False
+
+    def reconnect(self, *args, **kwargs):
+        """Attempt to reconnect to the Plex server using the last known credentials."""
+        # This is a stub; in a real implementation, store last used method/params
+        raise NotImplementedError("Automatic reconnection logic not implemented.")
+
+    def start_status_monitoring(self, interval=60):
+        """Stub for starting a background thread to monitor connection status."""
+        # Would use threading/timers in a real implementation
+        raise NotImplementedError("Status monitoring not implemented.")
+
+    def on_status_change(self, callback):
+        """Stub for registering a callback for connection status changes."""
+        raise NotImplementedError("Event system for status changes not implemented.") 
