@@ -163,4 +163,61 @@ class PlexClient:
             }
         except Exception as e:
             logger.warning(f"Failed to extract metadata for movie: {e}")
+            return {}
+
+    def get_all_shows(self, section_name='TV Shows'):
+        """Fetch all TV shows from the specified Plex library section, including seasons and episodes."""
+        if not self.server:
+            logger.error("Not connected to Plex server.")
+            raise AppError("Not connected to Plex server.", status_code=400)
+        try:
+            section = self.server.library.section(section_name)
+            shows = section.all()
+            logger.info(f"Fetched {len(shows)} TV shows from section '{section_name}'.")
+            return [self.extract_show_metadata(show) for show in shows]
+        except Exception as e:
+            logger.error(f"Failed to fetch TV shows: {e}")
+            raise AppError(f"Failed to fetch TV shows: {e}", status_code=500)
+
+    def extract_show_metadata(self, show):
+        """Extract and normalize metadata from a Plex show item, including seasons and episodes."""
+        try:
+            genres = [genre.tag for genre in getattr(show, 'genres', [])]
+            cast = [a.tag for a in getattr(show, 'actors', [])]
+            poster = show.posterUrl if hasattr(show, 'posterUrl') else None
+            backdrop = show.art if hasattr(show, 'art') else None
+            # Extract seasons and episodes
+            seasons = []
+            for season in getattr(show, 'seasons', lambda: [])().values():
+                episodes = []
+                for episode in getattr(season, 'episodes', lambda: [])().values():
+                    episodes.append({
+                        'plex_id': episode.ratingKey,
+                        'title': episode.title,
+                        'season_number': getattr(season, 'index', None),
+                        'episode_number': getattr(episode, 'index', None),
+                        'summary': getattr(episode, 'summary', None),
+                        'duration': getattr(episode, 'duration', None) // 60000 if getattr(episode, 'duration', None) else None,
+                        'air_date': getattr(episode, 'originallyAvailableAt', None),
+                    })
+                seasons.append({
+                    'plex_id': season.ratingKey,
+                    'title': season.title,
+                    'season_number': getattr(season, 'index', None),
+                    'episodes': episodes
+                })
+            return {
+                'plex_id': show.ratingKey,
+                'title': show.title,
+                'type': 'show',
+                'year': getattr(show, 'year', None),
+                'genres': ','.join(genres),
+                'summary': getattr(show, 'summary', None),
+                'cast': ','.join(cast),
+                'poster': poster,
+                'backdrop': backdrop,
+                'seasons': seasons
+            }
+        except Exception as e:
+            logger.warning(f"Failed to extract metadata for show: {e}")
             return {} 
