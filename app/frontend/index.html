@@ -1,63 +1,141 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mood-Based Plex Recommender</title>
     <link rel="stylesheet" href="css/styles.css">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { darkMode: 'class' };
+    </script>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Mood-Based Plex Recommender</h1>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen font-sans">
+    <div class="container mx-auto max-w-lg py-8 px-4">
+        <header class="mb-8 text-center">
+            <div class="flex justify-end mb-2">
+                <button id="dark-toggle" class="rounded-full px-3 py-1 text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition">Toggle Dark Mode</button>
+            </div>
+            <h1 class="text-3xl font-bold text-indigo-700 dark:text-indigo-300 mb-2">Moodie</h1>
+            <button id="connect-plex-btn"
+              class="mt-4 mb-2 px-6 py-2 rounded-full bg-green-600 hover:bg-green-700 text-white dark:bg-green-500 dark:hover:bg-green-600 font-semibold shadow transition">
+              Connect Plex
+            </button>
         </header>
-        
         <main>
-            <div id="mood-form" class="section">
-                <form id="mood-questionnaire">
-                    <div class="form-group">
-                        <h3>What's your vibe?</h3>
-                        <div class="mood-options">
-                            <label><input type="radio" name="mood" value="funny" required> Funny</label>
-                            <label><input type="radio" name="mood" value="action" required> Action</label>
-                            <label><input type="radio" name="mood" value="dramatic" required> Dramatic</label>
-                            <label><input type="radio" name="mood" value="relaxing" required> Relaxing</label>
+            <div id="mood-form" class="section bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 mb-8 transition-colors">
+                <div class="progress-bar mb-6 dark:bg-gray-700" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar-inner" id="progress-bar-inner"></div></div>
+                <div id="form-messages" aria-live="polite"></div>
+                <form id="mood-questionnaire" class="space-y-6">
+                    <fieldset class="form-group border-0 p-0">
+                        <legend class="block text-lg font-semibold mb-2 dark:text-white">Mood Tracker <span class="tooltip inline-flex items-center cursor-pointer ml-1" tabindex="0" aria-label="Mood Tracker: Select your current mood. This helps us personalize recommendations."><span class="tooltip-icon ml-1 text-indigo-400 dark:text-indigo-200" aria-hidden="true">ⓘ</span><span class="tooltip-text">Select your current mood. This helps us personalize recommendations.</span></span></legend>
+                        <div class="mood-tracker-options flex flex-row justify-between w-full mb-1" aria-describedby="mood-tracker-helper">
+                            <label class="cursor-pointer"><input type="radio" name="mood_tracker" value="happy" required class="peer sr-only"><span class="px-3 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-yellow-400 peer-checked:text-white transition font-medium dark:text-white">Happy</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="mood_tracker" value="sad" required class="peer sr-only"><span class="px-3 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-blue-400 peer-checked:text-white transition font-medium dark:text-white">Sad</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="mood_tracker" value="neutral" required class="peer sr-only"><span class="px-3 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-gray-400 peer-checked:text-white transition font-medium dark:text-white">Neutral</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="mood_tracker" value="stressed" required class="peer sr-only"><span class="px-3 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-red-400 peer-checked:text-white transition font-medium dark:text-white">Stressed</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="mood_tracker" value="angry" required class="peer sr-only"><span class="px-3 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-orange-600 peer-checked:text-white transition font-medium dark:text-white">Angry</span></label>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <h3>Solo or group watching?</h3>
-                        <div class="group-options">
-                            <label><input type="radio" name="group" value="solo" required> Solo</label>
-                            <label><input type="radio" name="group" value="couple" required> Couple</label>
-                            <label><input type="radio" name="group" value="group" required> Group</label>
+                        <div id="mood-tracker-helper" class="helper-text text-gray-500 dark:text-gray-300 text-sm mt-1">Select your current mood to help us tailor recommendations.</div>
+                    </fieldset>
+                    <fieldset class="form-group border-0 p-0">
+                        <legend class="block text-lg font-semibold mb-2 dark:text-white">Vibe <span class="tooltip inline-flex items-center cursor-pointer ml-1" tabindex="0" aria-label="Vibe: What kind of feeling or experience do you want from your recommendation?"><span class="tooltip-icon ml-1 text-indigo-400 dark:text-indigo-200" aria-hidden="true">ⓘ</span><span class="tooltip-text">What kind of feeling or experience do you want from your recommendation?</span></span></legend>
+                        <div class="vibe-options flex flex-row justify-between w-full mb-1" aria-describedby="vibe-helper">
+                            <label class="cursor-pointer"><input type="radio" name="vibe" value="funny" required class="peer sr-only"><span class="px-3 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-yellow-300 peer-checked:text-white transition font-medium dark:text-white">Funny</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="vibe" value="relaxing" required class="peer sr-only"><span class="px-3 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-blue-300 peer-checked:text-white transition font-medium dark:text-white">Relaxing</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="vibe" value="dramatic" required class="peer sr-only"><span class="px-3 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-red-300 peer-checked:text-white transition font-medium dark:text-white">Dramatic</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="vibe" value="uplifting" required class="peer sr-only"><span class="px-3 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-green-300 peer-checked:text-white transition font-medium dark:text-white">Uplifting</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="vibe" value="any" required class="peer sr-only"><span class="px-3 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-gray-400 peer-checked:text-white transition font-medium dark:text-white">Any</span></label>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <h3>Binge or short session?</h3>
-                        <div class="session-options">
-                            <label><input type="radio" name="session" value="short" required> Short (&lt; 1 hour)</label>
-                            <label><input type="radio" name="session" value="medium" required> Medium (1-2 hours)</label>
-                            <label><input type="radio" name="session" value="binge" required> Binge (2+ hours)</label>
+                        <div id="vibe-helper" class="text-xs text-gray-500 dark:text-gray-300">What kind of feeling or experience do you want from your recommendation?</div>
+                    </fieldset>
+                    <fieldset class="form-group border-0 p-0">
+                        <legend class="block text-lg font-semibold mb-2 dark:text-white">What's your vibe? <span class="tooltip inline-flex items-center cursor-pointer ml-1" tabindex="0" aria-label="Vibe: Your current mood or feeling. This helps us recommend content that matches how you feel."><span class="tooltip-icon ml-1 text-indigo-400 dark:text-indigo-200" aria-hidden="true">ⓘ</span><span class="tooltip-text">Your current mood or feeling. This helps us recommend content that matches how you feel.</span></span></legend>
+                        <div class="mood-options flex flex-wrap gap-3 mb-1" aria-describedby="mood-helper">
+                            <label class="cursor-pointer"><input type="radio" name="mood" value="funny" required class="peer sr-only"><span class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-orange-400 peer-checked:text-white transition font-medium dark:text-white">Funny</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="mood" value="action" required class="peer sr-only"><span class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-orange-400 peer-checked:text-white transition font-medium dark:text-white">Action</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="mood" value="dramatic" required class="peer sr-only"><span class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-orange-400 peer-checked:text-white transition font-medium dark:text-white">Dramatic</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="mood" value="relaxing" required class="peer sr-only"><span class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-orange-400 peer-checked:text-white transition font-medium dark:text-white">Relaxing</span></label>
                         </div>
-                    </div>
-                    <button type="submit" class="btn primary-btn">Get Recommendation</button>
+                        <div id="mood-helper" class="helper-text text-gray-500 dark:text-gray-300 text-sm mt-1">Choose the mood that best fits your current vibe.</div>
+                    </fieldset>
+                    <fieldset class="form-group border-0 p-0">
+                        <legend class="block text-lg font-semibold mb-2 dark:text-white">Solo or group watching? <span class="tooltip inline-flex items-center cursor-pointer ml-1" tabindex="0" aria-label="Group: Are you watching alone, with a partner, or with a group of friends?"><span class="tooltip-icon ml-1 text-indigo-400 dark:text-indigo-200" aria-hidden="true">ⓘ</span><span class="tooltip-text">Are you watching alone, with a partner, or with a group of friends?</span></span></legend>
+                        <div class="group-options flex flex-wrap gap-3 mb-1" aria-describedby="group-helper">
+                            <label class="cursor-pointer"><input type="radio" name="group" value="solo" required class="peer sr-only"><span class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-orange-400 peer-checked:text-white transition font-medium dark:text-white">Solo</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="group" value="couple" required class="peer sr-only"><span class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-orange-400 peer-checked:text-white transition font-medium dark:text-white">Couple</span></label>
+                            <label class="cursor-pointer"><input type="radio" name="group" value="group" required class="peer sr-only"><span class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-orange-400 peer-checked:text-white transition font-medium dark:text-white">Group</span></label>
+                        </div>
+                        <div id="group-helper" class="helper-text text-gray-500 dark:text-gray-300 text-sm mt-1">Let us know who you're watching with.</div>
+                    </fieldset>
+                    <fieldset class="form-group border-0 p-0">
+                        <legend class="flex flex-wrap items-center gap-x-2 text-lg font-semibold mb-2 dark:text-white">
+                            Binge
+                            <span class="tooltip inline-flex items-center cursor-pointer" tabindex="0" aria-label="Binge: A long viewing session, usually 2 hours or more, often watching multiple episodes or movies.">
+                                <span class="tooltip-icon ml-1 text-indigo-400 dark:text-indigo-200" aria-hidden="true">ⓘ</span>
+                                <span class="tooltip-text">A long viewing session, usually 2 hours or more, often watching multiple episodes or movies.</span>
+                            </span>
+                            or short session?
+                            <span class="tooltip inline-flex items-center cursor-pointer" tabindex="0" aria-label="Session: The amount of time you plan to spend watching right now.">
+                                <span class="tooltip-icon ml-1 text-indigo-400 dark:text-indigo-200" aria-hidden="true">ⓘ</span>
+                                <span class="tooltip-text">The amount of time you plan to spend watching right now.</span>
+                            </span>
+                        </legend>
+                        <div class="session-options flex flex-wrap gap-3 mb-1 w-full" aria-describedby="session-helper">
+                            <label class="cursor-pointer flex-1 min-w-[45%]"><input type="radio" name="session" value="short" required class="peer sr-only"><span class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-orange-400 peer-checked:text-white transition font-medium dark:text-white">Short (&lt; 1 hour)</span></label>
+                            <label class="cursor-pointer flex-1 min-w-[45%]"><input type="radio" name="session" value="medium" required class="peer sr-only"><span class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-orange-400 peer-checked:text-white transition font-medium dark:text-white">Medium (1-2 hours)</span></label>
+                            <label class="cursor-pointer w-full mt-2"><input type="radio" name="session" value="binge" required class="peer sr-only"><span class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 peer-checked:bg-orange-400 peer-checked:text-white transition font-medium dark:text-white">Binge (2+ hours)</span></label>
+                        </div>
+                        <div id="session-helper" class="helper-text text-gray-500 dark:text-gray-300 text-sm mt-1">How much time do you have for this session?</div>
+                    </fieldset>
+                    <button type="submit" class="btn primary-btn w-full bg-indigo-600 hover:bg-indigo-700 text-white dark:text-white font-bold py-3 px-6 rounded-full shadow transition dark:bg-indigo-500 dark:hover:bg-indigo-600">Get Recommendation</button>
                 </form>
             </div>
-            
             <div id="recommendation" class="section hidden">
-                <!-- Recommendation results will go here -->
+                <div class="recommendation-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mt-4 flex flex-col items-center transition-all duration-500 animate-fadeIn">
+                    <div class="w-32 h-32 bg-gray-200 dark:bg-gray-700 rounded-xl mb-4 flex items-center justify-center">
+                        <span class="text-gray-400 dark:text-gray-500 text-4xl">🎬</span>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-2">Movie/Show Title</h2>
+                    <p class="text-gray-600 dark:text-gray-300 text-center mb-4">A brief summary or description of the recommended content will appear here. This area will update dynamically.</p>
+                    <button class="mt-2 px-5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-500 dark:hover:bg-indigo-600 font-semibold shadow transition mb-6">Watch Now</button>
+                </div>
             </div>
-            
             <div id="feedback-form" class="section hidden">
-                <!-- Feedback form will go here -->
+                <div class="feedback-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mt-4 flex flex-col items-center transition-all duration-500 animate-fadeIn w-full">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Rate Your Recommendation</h2>
+                    <form class="w-full flex flex-col items-center">
+                        <div class="flex items-center mb-4" role="radiogroup" aria-label="Star rating">
+                            <button type="button" aria-label="1 star" class="star-btn text-3xl text-gray-300 dark:text-gray-600 hover:text-yellow-400 dark:hover:text-yellow-300 focus:outline-none transition">&#9733;</button>
+                            <button type="button" aria-label="2 stars" class="star-btn text-3xl text-gray-300 dark:text-gray-600 hover:text-yellow-400 dark:hover:text-yellow-300 focus:outline-none transition">&#9733;</button>
+                            <button type="button" aria-label="3 stars" class="star-btn text-3xl text-gray-300 dark:text-gray-600 hover:text-yellow-400 dark:hover:text-yellow-300 focus:outline-none transition">&#9733;</button>
+                            <button type="button" aria-label="4 stars" class="star-btn text-3xl text-gray-300 dark:text-gray-600 hover:text-yellow-400 dark:hover:text-yellow-300 focus:outline-none transition">&#9733;</button>
+                            <button type="button" aria-label="5 stars" class="star-btn text-3xl text-gray-300 dark:text-gray-600 hover:text-yellow-400 dark:hover:text-yellow-300 focus:outline-none transition">&#9733;</button>
+                        </div>
+                        <textarea class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white p-3 mb-4 resize-none focus:ring-2 focus:ring-indigo-400" rows="3" placeholder="Leave a comment (optional)"></textarea>
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-500 dark:hover:bg-indigo-600 font-semibold py-3 px-6 rounded-full shadow transition mb-6">Submit Feedback</button>
+                    </form>
+                </div>
             </div>
         </main>
-        
-        <footer>
+        <footer class="text-center text-gray-500 dark:text-gray-300 text-sm mt-8">
             <p>Connected to Plex: <span id="plex-status">Not connected</span></p>
         </footer>
     </div>
-    
     <script src="js/app.js"></script>
+    <script>
+      // Dark mode toggle logic
+      const darkToggle = document.getElementById('dark-toggle');
+      const html = document.documentElement;
+      darkToggle.addEventListener('click', () => {
+        html.classList.toggle('dark');
+        localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+      });
+      // On load, set dark mode from localStorage
+      if (localStorage.getItem('theme') === 'dark') {
+        html.classList.add('dark');
+      }
+    </script>
 </body>
 </html> 

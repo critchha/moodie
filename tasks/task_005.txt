@@ -1,80 +1,144 @@
 # Task ID: 5
-# Title: Implement Plex Media Metadata Import
-# Status: pending
-# Dependencies: 3, 4
+# Title: Implement Recommendation Engine Core Logic
+# Status: done
+# Dependencies: 2, 3, 4
 # Priority: high
-# Description: Create functionality to pull and store metadata from the Plex Media Server for all movies and TV shows.
+# Description: Develop the core recommendation engine that filters and scores content based on user preferences.
 # Details:
-1. Extend the PlexClient class to fetch media metadata:
-   ```python
-   def get_all_movies(self):
-       """Fetch all movies from Plex server"""
-       if not self.server:
-           raise Exception("Not connected to Plex server")
-       return self.server.library.section('Movies').all()
-   
-   def get_all_shows(self):
-       """Fetch all TV shows from Plex server"""
-       if not self.server:
-           raise Exception("Not connected to Plex server")
-       return self.server.library.section('TV Shows').all()
-   
-   def extract_metadata(self, media_item):
-       """Extract relevant metadata from a Plex media item"""
-       genres = [genre.tag for genre in media_item.genres] if hasattr(media_item, 'genres') else []
-       
-       return {
-           'plex_id': media_item.ratingKey,
-           'title': media_item.title,
-           'type': 'movie' if media_item.type == 'movie' else 'show',
-           'year': media_item.year,
-           'genres': ','.join(genres),
-           'summary': media_item.summary,
-           'duration': media_item.duration // 60000 if hasattr(media_item, 'duration') else None,
-       }
-   ```
-2. Create function to sync Plex metadata with local database
-3. Implement incremental updates to only fetch new or changed content
-4. Add API endpoint to trigger metadata refresh
-5. Create background task for periodic metadata updates
+1. Create a recommendation engine class that implements the weighted scoring system:
+
+```python
+class RecommendationEngine:
+    def __init__(self, plex_connector, db_connector, config):
+        self.plex = plex_connector
+        self.db = db_connector
+        self.config = config
+        self.weights = config['weights']
+    
+    def filter_by_duration(self, media_list, time_available):
+        # Filter media based on duration
+        if time_available == '<1h':
+            return [m for m in media_list if m['duration'] < 3600000]  # < 1 hour in ms
+        elif time_available == '1-2h':
+            return [m for m in media_list if 3600000 <= m['duration'] <= 7200000]
+        else:  # '2+h'
+            return [m for m in media_list if m['duration'] > 7200000]
+    
+    def filter_by_format(self, media_list, format_preference):
+        # Filter by content type
+        if format_preference == 'Any':
+            return media_list
+        return [m for m in media_list if m['type'].lower() == format_preference.lower()]
+    
+    def score_media(self, media, preferences):
+        score = 0
+        
+        # Unwatched bonus
+        if media['view_count'] == 0:
+            score += self.weights['unwatched_bonus']
+        
+        # Comfort mode (frequently rewatched)
+        if preferences['comfort_mode'] and media['view_count'] >= self.config['comfort_mode_threshold']:
+            score += self.weights['frequent_rewatch_bonus']
+        
+        # Time match scoring
+        # ... (implementation details)
+        
+        # Mood match scoring
+        # ... (implementation details)
+        
+        # Format match
+        # ... (implementation details)
+        
+        return score
+    
+    def get_recommendations(self, preferences):
+        # Get all media from Plex
+        all_media = self.plex.get_all_movies() + self.plex.get_all_shows()
+        media_metadata = [self.plex.get_media_metadata(m) for m in all_media]
+        
+        # Apply filters
+        filtered_media = self.filter_by_duration(media_metadata, preferences['time_available'])
+        filtered_media = self.filter_by_format(filtered_media, preferences['format'])
+        
+        # Score all filtered media
+        scored_media = [(m, self.score_media(m, preferences)) for m in filtered_media]
+        scored_media.sort(key=lambda x: x[1], reverse=True)
+        
+        # Get primary and backup recommendations
+        primary = scored_media[0][0] if scored_media else None
+        backup = scored_media[1][0] if len(scored_media) > 1 else None
+        
+        # Get wildcard if requested
+        wildcard = None
+        if preferences['surprise_pick']:
+            # ... (implementation for wildcard selection)
+        
+        return {
+            'primary': primary,
+            'backup': backup,
+            'wildcard': wildcard
+        }
+```
+
+2. Implement mood mapping to genres
+3. Create time duration mapping logic
+4. Implement the weighted scoring algorithm according to the PRD
+5. Add wildcard selection logic that intentionally chooses content outside the user's typical preferences
 
 # Test Strategy:
-Test fetching metadata from Plex server with various library sizes. Verify all metadata fields are correctly extracted and stored in the database. Test incremental updates with new content added to Plex.
+1. Unit test each filtering function
+2. Test scoring algorithm with various media and preference combinations
+3. Verify wildcard selection produces diverse recommendations
+4. Test edge cases (empty library, all content watched, etc.)
+5. Benchmark performance with large media libraries
 
 # Subtasks:
-## 1. Implement Plex API Connection and Authentication [pending]
+## 1. Create RecommendationEngine class structure [done]
 ### Dependencies: None
-### Description: Set up secure connection to the Plex API with proper authentication handling and session management
+### Description: Design and implement the base RecommendationEngine class with core methods and properties
 ### Details:
-Create a service that handles Plex API authentication, manages tokens, handles connection errors, and provides a reusable client for other components. Include rate limiting protection and logging for API interactions.
+Create a class with initialization methods, input validation, and interface for recommendation generation. Include methods for data loading, configuration settings, and result formatting. Establish proper error handling and logging.
 
-## 2. Develop Movie Metadata Fetching Module [pending]
+## 2. Implement content filtering functions [done]
 ### Dependencies: 5.1
-### Description: Create a module to fetch and parse movie metadata from Plex libraries
+### Description: Develop functions to filter content based on user preferences and constraints
 ### Details:
-Implement pagination for large libraries, extract all relevant movie metadata (title, year, director, cast, genres, etc.), handle poster/backdrop images, and normalize the data structure for database storage. Include error handling for missing or malformed data.
+Create filtering mechanisms for content type, genre, language, release date, and content rating. Implement exclusion logic for previously watched content and user-specific blacklists. Ensure filters can be combined and prioritized.
 
-## 3. Develop TV Show Metadata Fetching Module [pending]
+## 3. Develop core scoring algorithm [done]
+### Dependencies: 5.1, 5.2
+### Description: Create the algorithm that assigns relevance scores to content items
+### Details:
+Implement a scoring system that evaluates content based on multiple factors including user history, preferences, and content metadata. Create normalization functions to ensure scores are comparable across different content types and sources.
+
+## 4. Create mood-to-genre mapping system [done]
 ### Dependencies: 5.1
-### Description: Create a module to fetch and parse TV show metadata including series, seasons, and episodes
+### Description: Implement logic to translate user mood inputs into appropriate genre recommendations
 ### Details:
-Handle the hierarchical nature of TV content (series → seasons → episodes), extract metadata at each level, manage relationships between entities, and normalize data for storage. Include special handling for multi-episode files and split episodes.
+Develop a comprehensive mapping between mood states (happy, sad, excited, etc.) and corresponding content genres. Include intensity factors and combination rules for mixed moods. Create a flexible configuration system for easy updates.
 
-## 4. Create Metadata Extraction and Normalization System [pending]
-### Dependencies: 5.2, 5.3
-### Description: Build a system to extract, transform, and normalize metadata from different media types
+## 5. Implement duration-based content selection [done]
+### Dependencies: 5.1, 5.2
+### Description: Create logic to recommend content based on user's available time
 ### Details:
-Implement a unified metadata model that works for both movies and TV shows, handle different metadata formats, extract and normalize external IDs (IMDB, TMDB, TVDB), and create a consistent tagging system across media types.
+Develop algorithms to match content duration with user's available time. Include options for single items, series episodes, or combinations. Handle special cases like partial viewing and resuming content.
 
-## 5. Implement Database Synchronization Logic [pending]
-### Dependencies: 5.4
-### Description: Develop logic to efficiently synchronize Plex metadata with the application database
+## 6. Implement weighted scoring system [done]
+### Dependencies: 5.3, 5.4, 5.5
+### Description: Create a configurable weighted scoring system that combines multiple factors
 ### Details:
-Create efficient upsert operations, handle deletions/removals from Plex, maintain relationship integrity, implement transaction management for data consistency, and add detailed logging for sync operations.
+Develop a system that applies different weights to various scoring factors based on user preferences and context. Include dynamic weight adjustment based on user feedback and viewing patterns. Implement A/B testing capability for weight optimization.
 
-## 6. Build Incremental Update and Background Processing System [pending]
-### Dependencies: 5.5
-### Description: Create a system for detecting and processing incremental updates in the background
+## 7. Add wildcard/diversity selection logic [done]
+### Dependencies: 5.3, 5.6
+### Description: Implement logic to include occasional unexpected recommendations for discovery
 ### Details:
-Implement a change detection mechanism using Plex's updated_at timestamps, create a job queue for processing updates, develop a scheduler for periodic full syncs, add monitoring and alerting for failed jobs, and implement user notifications for completed imports.
+Create algorithms to occasionally include diverse content outside the user's typical preferences. Implement controlled randomness with configurable frequency and deviation parameters. Include logic to track and evaluate user response to wildcard recommendations.
+
+## 8. Optimize recommendation engine performance [done]
+### Dependencies: 5.2, 5.3, 5.6, 5.7
+### Description: Improve algorithm efficiency and response time
+### Details:
+Profile and optimize the recommendation generation process. Implement caching strategies, parallel processing where applicable, and algorithm optimizations. Create benchmarking tools to measure and compare performance improvements. Ensure the engine can handle large datasets efficiently.
 

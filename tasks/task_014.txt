@@ -1,82 +1,131 @@
 # Task ID: 14
-# Title: Dockerize the Application
+# Title: Implement API Integration Tests
 # Status: pending
-# Dependencies: 2, 6
-# Priority: medium
-# Description: Create Docker configuration to containerize the entire application for easy deployment.
+# Dependencies: 4, 5, 8, 9
+# Priority: low
+# Description: Create comprehensive integration tests for all API endpoints and core functionality.
 # Details:
-1. Create Dockerfile in project root:
-   ```dockerfile
-   FROM python:3.9-slim
-   
-   WORKDIR /app
-   
-   # Install dependencies
-   COPY requirements.txt .
-   RUN pip install --no-cache-dir -r requirements.txt
-   
-   # Copy application code
-   COPY app/ ./app/
-   
-   # Create directories for data and models
-   RUN mkdir -p app/data app/models
-   
-   # Expose port
-   EXPOSE 5000
-   
-   # Set environment variables
-   ENV FLASK_APP=app/backend/app.py
-   ENV FLASK_ENV=production
-   
-   # Run the application
-   CMD ["python", "app/backend/app.py"]
-   ```
-2. Create docker-compose.yml for easier management:
-   ```yaml
-   version: '3'
-   
-   services:
-     plex-recommender:
-       build: .
-       ports:
-         - "5000:5000"
-       volumes:
-         - ./app/data:/app/app/data
-         - ./app/models:/app/app/models
-       restart: unless-stopped
-       environment:
-         - FLASK_APP=app/backend/app.py
-         - FLASK_ENV=production
-   ```
-3. Add .dockerignore file to exclude unnecessary files
-4. Create startup script for initializing the application
-5. Document Docker usage in README.md
+1. Set up testing framework with pytest:
+```python
+import pytest
+from fastapi.testclient import TestClient
+from backend.main import app
+import json
+
+client = TestClient(app)
+
+@pytest.fixture
+def mock_plex_data():
+    # Mock data for testing
+    return {
+        "movies": [
+            {
+                "media_id": "movie1",
+                "title": "Test Movie 1",
+                "type": "movie",
+                "duration": 5400000,  # 1.5 hours
+                "genres": ["Comedy", "Action"],
+                "year": 2020,
+                "summary": "A test movie",
+                "view_count": 0
+            },
+            # Add more mock movies
+        ],
+        "shows": [
+            # Mock TV shows
+        ]
+    }
+
+def test_recommend_endpoint(mock_plex_data, monkeypatch):
+    # Mock the Plex connector
+    def mock_get_recommendations(*args, **kwargs):
+        return {
+            "primary": mock_plex_data["movies"][0],
+            "backup": mock_plex_data["movies"][1] if len(mock_plex_data["movies"]) > 1 else None,
+            "wildcard": mock_plex_data["shows"][0] if mock_plex_data["shows"] else None
+        }
+    
+    # Apply the mock
+    monkeypatch.setattr("backend.recommendation.RecommendationEngine.get_recommendations", mock_get_recommendations)
+    
+    # Test the endpoint
+    response = client.get("/recommend", params={
+        "time_available": "1-2h",
+        "mood": "Light/Funny",
+        "format": "Any",
+        "comfort_mode": "false",
+        "surprise_pick": "true"
+    })
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert "primary" in data
+    assert data["primary"]["title"] == "Test Movie 1"
+
+def test_feedback_endpoint():
+    response = client.post("/feedback", json={
+        "media_id": "movie1",
+        "watched_completion": True,
+        "would_watch_again": True,
+        "rating": 5
+    })
+    
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+
+def test_train_endpoint():
+    response = client.post("/train")
+    assert response.status_code == 200
+```
+
+2. Create mock data for testing
+3. Implement tests for all API endpoints
+4. Add tests for error handling and edge cases
+5. Create performance tests for recommendation engine
+6. Implement end-to-end tests for complete user flows
 
 # Test Strategy:
-Build Docker image and verify it runs correctly. Test application functionality within the container. Verify data persistence using Docker volumes.
+1. Run tests in CI/CD pipeline
+2. Verify all endpoints return expected responses
+3. Test with various input combinations
+4. Verify error handling works correctly
+5. Benchmark performance under load
+6. Test with mock Plex server
 
 # Subtasks:
-## 1. Create Dockerfile [pending]
+## 1. Set up API testing framework [pending]
 ### Dependencies: None
-### Description: Create a Dockerfile that properly packages the application with all dependencies
+### Description: Select and configure an appropriate testing framework for API integration tests
 ### Details:
-Define the base image, set up the working directory, copy application files, install dependencies, expose necessary ports, and specify the command to run the application. Ensure the image is optimized for size and security by using multi-stage builds if appropriate.
+Research and select a suitable testing framework (e.g., Jest, Mocha, Postman). Install necessary dependencies, configure the test environment, and set up the project structure for organizing tests. Include configuration for test reporting and CI/CD integration.
 
-## 2. Configure docker-compose.yml [pending]
+## 2. Create mock data for tests [pending]
 ### Dependencies: 14.1
-### Description: Create a docker-compose configuration to manage multiple services
+### Description: Develop comprehensive mock data sets for all API test scenarios
 ### Details:
-Define all required services (application, database, cache, etc.), set environment variables, configure networks, and establish service dependencies. Ensure proper startup order using depends_on and healthchecks where necessary.
+Create realistic mock data that covers various test cases. Include valid data, edge cases, and invalid data. Organize mock data in a reusable format. Consider using factories or fixtures to generate dynamic test data when needed.
 
-## 3. Implement Volume Management [pending]
-### Dependencies: 14.2
-### Description: Set up Docker volumes for persistent data storage
+## 3. Implement endpoint tests [pending]
+### Dependencies: 14.1, 14.2
+### Description: Develop tests for all API endpoints covering CRUD operations
 ### Details:
-Identify data that needs to persist between container restarts (database files, uploaded content, logs, etc.). Configure named volumes in docker-compose.yml, establish proper mount points, and ensure appropriate permissions for the container user.
+Create test suites for each API endpoint. Include tests for GET, POST, PUT, DELETE operations as applicable. Verify correct response codes, payload structure, and data integrity. Ensure tests are isolated and can run independently.
 
-## 4. Create Deployment Documentation [pending]
-### Dependencies: 14.1, 14.2, 14.3
-### Description: Document the Docker setup and deployment process
+## 4. Implement error handling tests [pending]
+### Dependencies: 14.3
+### Description: Create tests to verify API error responses and edge cases
 ### Details:
-Write comprehensive documentation covering: prerequisites, build instructions, environment variable configuration, deployment commands, volume backup procedures, container health monitoring, and troubleshooting steps. Include examples for both development and production environments.
+Develop tests that trigger various error conditions (invalid inputs, unauthorized access, resource not found, etc.). Verify that the API returns appropriate error codes and messages. Test validation logic and ensure security constraints are enforced.
+
+## 5. Implement performance tests [pending]
+### Dependencies: 14.3
+### Description: Create tests to measure and verify API performance metrics
+### Details:
+Set up performance testing scenarios to measure response times, throughput, and resource utilization. Define acceptable performance thresholds. Implement load tests for critical endpoints. Create reports to track performance metrics over time.
+
+## 6. Develop end-to-end test scenarios [pending]
+### Dependencies: 14.3, 14.4, 14.5
+### Description: Create comprehensive test flows that simulate real user interactions across multiple endpoints
+### Details:
+Implement test scenarios that chain multiple API calls to simulate complete user workflows. Verify data consistency across the entire flow. Include authentication flows, multi-step processes, and scenarios that involve state changes across multiple resources.
 

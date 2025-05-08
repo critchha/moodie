@@ -1,95 +1,158 @@
 # Task ID: 10
-# Title: Implement Basic Recommendation Engine
-# Status: pending
-# Dependencies: 3, 5
-# Priority: high
-# Description: Create a rule-based recommendation system that filters media based on user mood inputs.
+# Title: Develop Frontend UI with Tailwind CSS
+# Status: done
+# Dependencies: 4
+# Priority: medium
+# Description: Create a modern, responsive user interface for the recommendation system using HTML/JS or React with Tailwind CSS.
 # Details:
-1. Create recommendation module in `app/backend/recommender.py`
-2. Implement basic filtering logic based on mood inputs:
-   ```python
-   def get_basic_recommendations(db_session, mood, group_size, session_length):
-       """Get recommendations based on simple rule-based filtering"""
-       query = db_session.query(Media)
-       
-       # Filter by mood
-       if mood == 'funny':
-           query = query.filter(Media.genres.like('%Comedy%'))
-       elif mood == 'action':
-           query = query.filter(Media.genres.like('%Action%'))
-       elif mood == 'dramatic':
-           query = query.filter(Media.genres.like('%Drama%'))
-       elif mood == 'relaxing':
-           # Relaxing could be documentaries, nature shows, etc.
-           query = query.filter(or_(
-               Media.genres.like('%Documentary%'),
-               Media.genres.like('%Family%')
-           ))
-       
-       # Filter by session length
-       if session_length == 'short':
-           # Movies under 90 minutes or TV episodes
-           query = query.filter(or_(
-               and_(Media.type == 'movie', Media.duration <= 90),
-               Media.type == 'show'
-           ))
-       elif session_length == 'medium':
-           # Movies between 90-150 minutes
-           query = query.filter(or_(
-               and_(Media.type == 'movie', Media.duration > 90, Media.duration <= 150),
-               Media.type == 'show'
-           ))
-       elif session_length == 'binge':
-           # Longer movies or TV shows good for binging
-           query = query.filter(or_(
-               and_(Media.type == 'movie', Media.duration > 120),
-               Media.type == 'show'
-           ))
-       
-       # Get random results from filtered query
-       results = query.order_by(func.random()).limit(3).all()
-       
-       # If no results, try with more relaxed filters
-       if not results:
-           results = db_session.query(Media).order_by(func.random()).limit(3).all()
-       
-       return results
-   ```
-3. Implement API endpoint to return recommendations
-4. Store recommendation in database for later feedback
-5. Add logging for recommendation requests
+1. Set up React project with Tailwind CSS:
+```bash
+npx create-react-app frontend
+cd frontend
+npm install tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+```
+
+2. Configure Tailwind CSS in `tailwind.config.js`
+
+3. Create main components:
+   - Preference Form
+   - Recommendation Display
+   - Feedback Form
+
+4. Implement the Preference Form component:
+```jsx
+import React, { useState } from 'react';
+
+const PreferenceForm = ({ onSubmit }) => {
+  const [preferences, setPreferences] = useState({
+    timeAvailable: '1-2h',
+    mood: 'Light/Funny',
+    format: 'Any',
+    comfortMode: false,
+    surprisePick: false
+  });
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setPreferences({
+      ...preferences,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(preferences);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+      <h2 className="text-xl font-bold mb-4">What would you like to watch?</h2>
+      
+      <div className="mb-4">
+        <label className="block text-gray-700 text-sm font-bold mb-2">
+          Time Available
+        </label>
+        <select
+          name="timeAvailable"
+          value={preferences.timeAvailable}
+          onChange={handleChange}
+          className="shadow border rounded w-full py-2 px-3 text-gray-700"
+        >
+          <option value="<1h">Less than 1 hour</option>
+          <option value="1-2h">1 to 2 hours</option>
+          <option value="2+h">More than 2 hours</option>
+        </select>
+      </div>
+      
+      {/* Similar inputs for mood and format */}
+      
+      <div className="mb-4">
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            name="comfortMode"
+            checked={preferences.comfortMode}
+            onChange={handleChange}
+            className="mr-2"
+          />
+          <span className="text-gray-700">Comfort Mode (suggest favorites)</span>
+        </label>
+      </div>
+      
+      <div className="mb-6">
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            name="surprisePick"
+            checked={preferences.surprisePick}
+            onChange={handleChange}
+            className="mr-2"
+          />
+          <span className="text-gray-700">Include Surprise Pick</span>
+        </label>
+      </div>
+      
+      <button
+        type="submit"
+        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+      >
+        Get Recommendations
+      </button>
+    </form>
+  );
+};
+
+export default PreferenceForm;
+```
+
+5. Implement API service for backend communication
+6. Create responsive design for mobile and desktop
+7. Add loading states and error handling
 
 # Test Strategy:
-Test recommendation engine with various mood inputs. Verify filtering logic works correctly. Test edge cases like no matching content or empty database.
+1. Test UI rendering on different screen sizes
+2. Verify form validation works correctly
+3. Test API integration with mock data
+4. Verify all user interactions work as expected
+5. Test accessibility compliance
+6. Perform cross-browser testing
 
 # Subtasks:
-## 1. Implement Content Filtering Logic [pending]
+## 1. Set up React project structure [done]
 ### Dependencies: None
-### Description: Create the core filtering mechanism that selects appropriate content based on user preferences and history
+### Description: Initialize a new React project with necessary dependencies and folder structure
 ### Details:
-Develop filtering algorithms that consider content tags, user viewing history, and preference settings. Include logic to exclude recently watched content and implement weighted scoring for content relevance. Handle edge cases like new users with limited history.
+Create a new React project using Create React App or Vite, set up folder structure for components, services, and assets. Install required dependencies including React Router for navigation.
 
-## 2. Develop Mood-Based Recommendation Rules [pending]
+## 2. Configure Tailwind CSS [done]
 ### Dependencies: 10.1
-### Description: Create a rule system that adjusts content recommendations based on user-selected mood states
+### Description: Install and configure Tailwind CSS in the React project
 ### Details:
-Define mood categories (relaxed, energetic, focused, etc.) and map content tags to these moods. Implement priority adjustments when mood is selected. Create fallback logic when insufficient mood-matching content is available.
+Install Tailwind CSS, PostCSS, and Autoprefixer. Create configuration files (tailwind.config.js and postcss.config.js). Set up custom theme variables for colors, spacing, and typography to match design requirements.
 
-## 3. Implement Session Length Handling [pending]
+## 3. Design component architecture [done]
+### Dependencies: 10.2
+### Description: Create a component hierarchy and reusable UI components
+### Details:
+Design the component architecture including layout components (Header, Footer, Container), UI components (Button, Card, Input), and page components. Create reusable components with proper prop interfaces and documentation.
+
+## 4. Implement preference form components [done]
+### Dependencies: 10.3
+### Description: Build form components for user preference input
+### Details:
+Create form components with validation for user preferences. Implement form state management using React hooks or a form library. Include input fields, dropdowns, checkboxes, and submission buttons with proper validation and error handling.
+
+## 5. Create API service layer [done]
 ### Dependencies: 10.1
-### Description: Add functionality to tailor recommendations based on user's available time for a session
+### Description: Develop services for API communication
 ### Details:
-Create algorithms to select content that fits within specified time constraints. Implement logic for combining shorter content pieces to fill longer sessions. Handle edge cases where no content matches the exact time requirements.
+Create API service modules using Fetch or Axios for communication with backend services. Implement methods for data fetching, error handling, and response parsing. Set up authentication handling if required.
 
-## 4. Design Recommendation Storage System [pending]
-### Dependencies: 10.1, 10.2, 10.3
-### Description: Create a data structure and storage mechanism for generated recommendations
+## 6. Implement responsive design [done]
+### Dependencies: 10.3, 10.4
+### Description: Ensure UI is responsive across different device sizes
 ### Details:
-Design database schema for storing recommendation sets. Implement caching mechanism for frequent recommendations. Create expiration logic for outdated recommendations. Ensure efficient retrieval of stored recommendations.
-
-## 5. Implement Recommendation API Endpoint [pending]
-### Dependencies: 10.4
-### Description: Create the API endpoint that serves recommendations to the frontend
-### Details:
-Develop RESTful API endpoint that accepts user parameters (mood, time available, etc.). Implement request validation and error handling. Create response formatting with all necessary content metadata. Add pagination support for large recommendation sets.
+Use Tailwind's responsive utilities to implement mobile-first design. Test and optimize layout for mobile, tablet, and desktop viewports. Implement responsive navigation and ensure proper rendering on different screen sizes.
 

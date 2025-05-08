@@ -1,99 +1,131 @@
 # Task ID: 13
-# Title: Implement ML-Based Recommendation Scoring
+# Title: Implement Configuration Management
 # Status: pending
-# Dependencies: 12
-# Priority: medium
-# Description: Enhance the recommendation engine to use the trained ML model for scoring and ranking potential recommendations.
+# Dependencies: 5
+# Priority: low
+# Description: Create a system for managing and updating the scoring weights and other configuration parameters.
 # Details:
-1. Extend the recommendation module to use ML model for scoring:
-   ```python
-   def get_ml_recommendations(db_session, mood, group_size, session_length):
-       """Get recommendations using ML model for scoring"""
-       # First get candidate media using basic filtering
-       candidates = get_basic_recommendations(db_session, mood, group_size, session_length)
-       
-       # Load the ML model
-       model = load_model()
-       if not model:
-           # Fall back to basic recommendations if no model is available
-           return candidates[:3]
-       
-       # Prepare features for each candidate
-       candidate_scores = []
-       for media in candidates:
-           # Create the same feature vector used in training
-           mood_funny = 1 if mood == 'funny' else 0
-           mood_action = 1 if mood == 'action' else 0
-           mood_dramatic = 1 if mood == 'dramatic' else 0
-           mood_relaxing = 1 if mood == 'relaxing' else 0
-           
-           group_solo = 1 if group_size == 'solo' else 0
-           group_couple = 1 if group_size == 'couple' else 0
-           group_group = 1 if group_size == 'group' else 0
-           
-           session_short = 1 if session_length == 'short' else 0
-           session_medium = 1 if session_length == 'medium' else 0
-           session_binge = 1 if session_length == 'binge' else 0
-           
-           genres = media.genres.split(',') if media.genres else []
-           genre_comedy = 1 if 'Comedy' in genres else 0
-           genre_action = 1 if 'Action' in genres else 0
-           genre_drama = 1 if 'Drama' in genres else 0
-           genre_thriller = 1 if 'Thriller' in genres else 0
-           genre_scifi = 1 if 'Science Fiction' in genres else 0
-           
-           features = [
-               mood_funny, mood_action, mood_dramatic, mood_relaxing,
-               group_solo, group_couple, group_group,
-               session_short, session_medium, session_binge,
-               genre_comedy, genre_action, genre_drama, genre_thriller, genre_scifi,
-               media.duration or 0,
-               media.year or 0
-           ]
-           
-           # Get prediction probability
-           score = model.predict_proba([features])[0][1]  # Probability of positive class
-           candidate_scores.append((media, score))
-       
-       # Sort by score and return top 3
-       sorted_candidates = sorted(candidate_scores, key=lambda x: x[1], reverse=True)
-       return [media for media, score in sorted_candidates[:3]]
-   ```
-2. Update the recommendation API endpoint to use ML scoring
-3. Add fallback to basic recommendations when ML model is not available
-4. Store prediction score with recommendation for analysis
+1. Create a configuration management module:
+```python
+import json
+import os
+from typing import Dict, Any
+
+class ConfigManager:
+    def __init__(self, config_path="config/scoring_config.json"):
+        self.config_path = config_path
+        self.config = self.load_config()
+    
+    def load_config(self) -> Dict[str, Any]:
+        # Default configuration
+        default_config = {
+            "weights": {
+                "unwatched_bonus": 10,
+                "frequent_rewatch_bonus": 7,
+                "time_perfect_match": 10,
+                "time_close_match": 5,
+                "mood_match": 10,
+                "mood_partial_match": 5,
+                "format_match": 5
+            },
+            "comfort_mode_threshold": 3,
+            "auto_train_on_feedback": True,
+            "feedback_count_for_training": 10,
+            "wildcard_selection_strategy": "genre_mismatch"
+        }
+        
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+        
+        # Load from file if exists
+        if os.path.exists(self.config_path):
+            try:
+                with open(self.config_path, 'r') as f:
+                    loaded_config = json.load(f)
+                    # Merge with defaults to ensure all keys exist
+                    for key, value in loaded_config.items():
+                        if key in default_config and isinstance(value, dict) and isinstance(default_config[key], dict):
+                            default_config[key].update(value)
+                        else:
+                            default_config[key] = value
+            except Exception as e:
+                print(f"Error loading config: {e}")
+        else:
+            # Save default config if file doesn't exist
+            self.save_config(default_config)
+        
+        return default_config
+    
+    def save_config(self, config=None) -> bool:
+        if config is None:
+            config = self.config
+        
+        try:
+            with open(self.config_path, 'w') as f:
+                json.dump(config, f, indent=2)
+            return True
+        except Exception as e:
+            print(f"Error saving config: {e}")
+            return False
+    
+    def update_config(self, updates: Dict[str, Any]) -> bool:
+        # Update configuration recursively
+        def update_dict(d, u):
+            for k, v in u.items():
+                if isinstance(v, dict) and k in d and isinstance(d[k], dict):
+                    update_dict(d[k], v)
+                else:
+                    d[k] = v
+        
+        update_dict(self.config, updates)
+        return self.save_config()
+    
+    def get_config(self) -> Dict[str, Any]:
+        return self.config
+```
+
+2. Create API endpoints for viewing and updating configuration
+3. Implement admin UI for configuration management
+4. Add validation for configuration parameters
+5. Implement configuration versioning and rollback
+6. Create automatic backup of configuration files
 
 # Test Strategy:
-Test ML-based recommendations with various inputs. Compare results with and without ML scoring. Verify fallback to basic recommendations works when no model is available.
+1. Test loading and saving configuration files
+2. Verify default values are applied correctly
+3. Test configuration updates with various parameters
+4. Verify validation prevents invalid configurations
+5. Test versioning and rollback functionality
+6. Verify API endpoints for configuration management
 
 # Subtasks:
-## 1. Feature Extraction Pipeline [pending]
+## 1. Develop Configuration Manager Module [pending]
 ### Dependencies: None
-### Description: Develop a pipeline to extract relevant features from user data, content metadata, and interaction history for recommendation scoring.
+### Description: Create a core module that handles reading, writing, and validating configuration files
 ### Details:
-Create a modular feature extraction system that processes user profiles, content characteristics, and historical interactions. Implement feature normalization, encoding of categorical variables, and handling of missing data. Ensure the pipeline can be executed efficiently in real-time for scoring recommendations.
+Implement a configuration manager class that can load configuration from files, provide access methods for retrieving configuration values, handle different configuration formats (JSON, YAML), and implement basic error handling for missing or corrupt configuration files.
 
-## 2. ML Model Integration [pending]
+## 2. Create API Endpoints for Configuration [pending]
 ### Dependencies: 13.1
-### Description: Integrate the trained ML model with the recommendation system to enable real-time scoring of potential recommendations.
+### Description: Develop REST API endpoints for retrieving and updating configuration values
 ### Details:
-Develop an API or service that loads the trained ML model and accepts feature vectors as input. Implement caching mechanisms to improve performance. Create monitoring tools to track model performance and detect drift. Ensure the integration supports model versioning and A/B testing capabilities.
+Design and implement RESTful API endpoints that allow getting current configuration, updating specific configuration values, and reloading configuration from disk. Include proper authentication and authorization checks for these sensitive endpoints.
 
-## 3. Score Calculation Logic [pending]
-### Dependencies: 13.2
-### Description: Implement the logic to calculate final recommendation scores by combining ML model outputs with business rules and personalization factors.
+## 3. Implement Configuration Validation Logic [pending]
+### Dependencies: 13.1
+### Description: Create validation rules and logic to ensure configuration values meet required constraints
 ### Details:
-Design a scoring algorithm that weights ML model predictions alongside business priorities, content freshness, and diversity requirements. Implement configurable scoring parameters that can be adjusted without code changes. Create unit tests to verify scoring behavior across different scenarios.
+Develop a validation framework that can check configuration values against type constraints, range limits, required fields, and other business rules. Implement validation during both configuration loading and when updates are made through the API.
 
-## 4. Fallback Mechanism Implementation [pending]
-### Dependencies: 13.3
-### Description: Develop robust fallback strategies for handling edge cases, cold starts, and model failures in the recommendation scoring system.
+## 4. Build Admin UI for Configuration Management [pending]
+### Dependencies: 13.2, 13.3
+### Description: Create a user interface for administrators to view and modify configuration settings
 ### Details:
-Implement tiered fallback approaches including popularity-based recommendations, content similarity, and editorial selections. Create logic to detect when the ML scoring is unreliable or unavailable. Design the system to gracefully degrade performance rather than fail completely. Document fallback behaviors for operational support.
+Design and implement a web-based UI that displays current configuration values in a structured format, allows editing with appropriate input controls, shows validation errors, and confirms changes before saving. Include search and filtering capabilities for large configuration sets.
 
-## 5. Result Ranking and Presentation [pending]
-### Dependencies: 13.3, 13.4
-### Description: Develop the final ranking algorithm to sort recommendations based on scores and implement the presentation layer for displaying results.
+## 5. Implement Configuration Versioning and Backup [pending]
+### Dependencies: 13.1, 13.2
+### Description: Add functionality to track configuration changes, create backups, and restore previous versions
 ### Details:
-Create an efficient sorting mechanism that can handle large recommendation sets. Implement diversity rules to prevent similar items from clustering together. Design a caching strategy for frequently requested recommendation sets. Develop APIs that return properly formatted recommendation results with explanation metadata when requested.
+Develop a system to automatically create backups before configuration changes, maintain a history of changes with timestamps and user information, and provide functionality to compare and restore previous configuration versions when needed.
 

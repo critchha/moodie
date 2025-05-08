@@ -1,92 +1,113 @@
 # Task ID: 15
-# Title: Implement Manual Retraining UI and Polish
-# Status: pending
-# Dependencies: 9, 12, 13
-# Priority: low
-# Description: Add UI for manual model retraining and polish the overall user experience.
+# Title: Finalize Docker Deployment
+# Status: done
+# Dependencies: 1, 4, 10
+# Priority: high
+# Description: Complete the Docker configuration for production deployment and create documentation for installation and usage.
 # Details:
-1. Add admin section to frontend:
-   ```html
-   <div id="admin-panel" class="section">
-       <h2>Admin Panel</h2>
-       <div class="stats-container">
-           <div class="stat-box">
-               <h3>Total Recommendations</h3>
-               <p id="total-recommendations">0</p>
-           </div>
-           <div class="stat-box">
-               <h3>Feedback Collected</h3>
-               <p id="total-feedback">0</p>
-           </div>
-           <div class="stat-box">
-               <h3>Model Last Trained</h3>
-               <p id="last-trained">Never</p>
-           </div>
-       </div>
-       <button id="retrain-btn" class="btn primary-btn">Retrain Model</button>
-       <div id="training-status" class="hidden"></div>
-   </div>
-   ```
-2. Add JavaScript to handle model retraining:
-   ```javascript
-   document.getElementById('retrain-btn').addEventListener('click', function() {
-       const trainingStatus = document.getElementById('training-status');
-       trainingStatus.textContent = 'Training in progress...';
-       trainingStatus.classList.remove('hidden');
-       
-       fetch('/api/train', {
-           method: 'POST'
-       })
-       .then(response => response.json())
-       .then(data => {
-           if (data.status === 'success') {
-               trainingStatus.textContent = 'Model trained successfully!';
-               document.getElementById('last-trained').textContent = new Date().toLocaleString();
-           } else {
-               trainingStatus.textContent = 'Training failed: ' + data.error;
-           }
-       })
-       .catch(error => {
-           trainingStatus.textContent = 'Error: ' + error;
-       });
-   });
-   ```
-3. Add API endpoint to get application statistics
-4. Improve UI transitions and animations
-5. Add error handling and user feedback throughout the application
-6. Implement responsive design improvements
+1. Create a production-ready docker-compose.yml:
+```yaml
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./ml:/app/ml
+    environment:
+      - PLEX_BASE_URL=${PLEX_BASE_URL}
+      - PLEX_TOKEN=${PLEX_TOKEN}
+      - DATABASE_URL=sqlite:///data/recommendations.db
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+```
+
+2. Create a frontend Dockerfile:
+```dockerfile
+# Build stage
+FROM node:16-alpine as build
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine
+COPY --from=build /app/build /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+3. Create an .env.example file with required environment variables
+4. Write installation and setup documentation:
+   - Prerequisites (Docker, Plex server)
+   - Configuration steps
+   - Installation commands
+   - Troubleshooting guide
+
+5. Create scripts for backup and restore
+6. Implement health checks and monitoring
+7. Add volume management for persistent data
 
 # Test Strategy:
-Test manual retraining functionality. Verify statistics are displayed correctly. Test UI on different devices and screen sizes to ensure responsive design works correctly.
+1. Test Docker build process
+2. Verify container startup and communication
+3. Test with various environment configurations
+4. Verify persistence across container restarts
+5. Test backup and restore functionality
+6. Verify documentation accuracy with fresh installation
 
 # Subtasks:
-## 1. Create Admin Panel Framework [pending]
+## 1. Create Production Docker-Compose Configuration [done]
 ### Dependencies: None
-### Description: Design and implement the basic structure of the admin panel for manual retraining
+### Description: Develop a production-ready docker-compose.yml file with proper networking, volumes, and service configurations.
 ### Details:
-Create the layout, navigation, and authentication for the admin panel. Include sidebar navigation, header with user info, and main content area. Ensure proper access control so only authorized users can access the retraining functionality.
+Include service definitions for all application components, configure proper restart policies, set up volume mounts for persistent data, define appropriate network settings, and optimize for production performance. Ensure secrets are properly managed and not hardcoded.
 
-## 2. Implement Model Statistics Display [pending]
-### Dependencies: 15.1
-### Description: Create visualizations and tables to display current model performance metrics
+## 2. Develop Frontend Dockerfile [done]
+### Dependencies: None
+### Description: Create an optimized Dockerfile for the frontend application with multi-stage builds.
 ### Details:
-Design and implement charts, graphs and tables showing key model metrics like accuracy, F1 score, precision, recall, and confusion matrix. Include historical performance data and trend analysis. Add filtering options by date ranges.
+Implement multi-stage build process to minimize image size, configure proper Node.js environment, optimize npm/yarn caching, set up proper NGINX configuration for serving static assets, and ensure proper security headers are configured.
 
-## 3. Develop Manual Retraining Controls [pending]
+## 3. Implement Environment Variable Management [done]
 ### Dependencies: 15.1, 15.2
-### Description: Create UI components for initiating and monitoring model retraining
+### Description: Set up a secure system for managing environment variables across different deployment environments.
 ### Details:
-Implement form controls for selecting training parameters, dataset versions, and model configurations. Add progress indicators, real-time logs, and status updates during training. Include cancel/pause functionality and error handling with clear user feedback.
+Create .env file templates, document all required variables, implement a secure method for injecting secrets in production, set up validation for required variables, and ensure proper variable isolation between services.
 
-## 4. Polish UI and Improve User Experience [pending]
-### Dependencies: 15.3
-### Description: Enhance the visual design and usability of the retraining interface
+## 4. Create Backup and Restore Scripts [done]
+### Dependencies: 15.1
+### Description: Develop automated scripts for backing up and restoring application data and configurations.
 ### Details:
-Apply consistent styling, improve component spacing and alignment, add helpful tooltips and documentation links. Implement confirmation dialogs for critical actions, keyboard shortcuts, and accessibility improvements. Ensure loading states and transitions are smooth.
+Write scripts to backup database volumes, application configurations, and user-generated content. Include scheduling configuration, implement retention policies, create restore procedures, and test the entire backup/restore process.
 
-## 5. Implement Responsive Design [pending]
-### Dependencies: 15.4
-### Description: Ensure the retraining UI works well across different screen sizes and devices
+## 5. Implement Health Monitoring [done]
+### Dependencies: 15.1, 15.2
+### Description: Set up health checks and monitoring for all containerized services.
 ### Details:
-Test and optimize layout for desktop, tablet, and mobile views. Implement responsive breakpoints, collapsible sections, and touch-friendly controls. Ensure charts and statistics visualizations adapt appropriately to smaller screens without losing critical information.
+Configure Docker health checks for each service, implement monitoring endpoints, set up alerting for service failures, create dashboard for visualizing container health, and document troubleshooting procedures for common issues.
+
+## 6. Write Comprehensive Deployment Documentation [done]
+### Dependencies: 15.1, 15.2, 15.3, 15.4, 15.5
+### Description: Create detailed documentation covering all aspects of the Docker deployment process.
+### Details:
+Document initial setup procedures, environment configuration, scaling strategies, backup/restore processes, troubleshooting guides, security considerations, and update procedures. Include diagrams of the architecture and examples of common operations.
 

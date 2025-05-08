@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  moodie:
+    build: .
+    container_name: moodie-app
+    ports:
+      - "8000:8000"
+    environment:
+      - FLASK_ENV=development
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - .:/app
+    # Uncomment the following line if you want to auto-restart the container on failure
+    # restart: unless-stopped 

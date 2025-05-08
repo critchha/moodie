@@ -1,74 +1,84 @@
 # Task ID: 7
-# Title: Implement Mood Questionnaire UI
-# Status: pending
-# Dependencies: 6
+# Title: Develop Wildcard Suggestion Feature
+# Status: done
+# Dependencies: 5
 # Priority: medium
-# Description: Create the user interface for collecting mood and context inputs from the user.
+# Description: Implement the surprise/wildcard suggestion option to encourage content discovery.
 # Details:
-1. Create HTML form for mood inputs in the mood-form section:
-   ```html
-   <form id="mood-questionnaire">
-       <div class="form-group">
-           <h3>What's your vibe?</h3>
-           <div class="mood-options">
-               <label><input type="radio" name="mood" value="funny" required> Funny</label>
-               <label><input type="radio" name="mood" value="action" required> Action</label>
-               <label><input type="radio" name="mood" value="dramatic" required> Dramatic</label>
-               <label><input type="radio" name="mood" value="relaxing" required> Relaxing</label>
-           </div>
-       </div>
-       
-       <div class="form-group">
-           <h3>Solo or group watching?</h3>
-           <div class="group-options">
-               <label><input type="radio" name="group" value="solo" required> Solo</label>
-               <label><input type="radio" name="group" value="couple" required> Couple</label>
-               <label><input type="radio" name="group" value="group" required> Group</label>
-           </div>
-       </div>
-       
-       <div class="form-group">
-           <h3>Binge or short session?</h3>
-           <div class="session-options">
-               <label><input type="radio" name="session" value="short" required> Short (< 1 hour)</label>
-               <label><input type="radio" name="session" value="medium" required> Medium (1-2 hours)</label>
-               <label><input type="radio" name="session" value="binge" required> Binge (2+ hours)</label>
-           </div>
-       </div>
-       
-       <button type="submit" class="btn primary-btn">Get Recommendation</button>
-   </form>
-   ```
-2. Add JavaScript to handle form submission and API call
-3. Implement form validation
-4. Add visual feedback for selection (highlighting, animations)
-5. Store form values in session storage for persistence
+1. Implement wildcard selection algorithm:
+
+```python
+def get_wildcard_suggestion(self, media_list, user_preferences):
+    # Filter out media that would be in primary/backup recommendations
+    scored_media = [(m, self.score_media(m, user_preferences)) for m in media_list]
+    scored_media.sort(key=lambda x: x[1], reverse=True)
+    
+    # Remove top recommendations to avoid overlap
+    if len(scored_media) > 2:
+        potential_wildcards = scored_media[2:]
+    else:
+        potential_wildcards = scored_media
+    
+    # Find media that intentionally mismatches one preference
+    # but still meets basic requirements (e.g., duration)
+    wildcard_candidates = []
+    
+    for media, score in potential_wildcards:
+        # Check if it's a genre/mood mismatch but time-appropriate
+        if self.is_time_appropriate(media, user_preferences['time_available']):
+            wildcard_candidates.append((media, score))
+    
+    # If we have candidates, select one randomly with preference for unwatched
+    if wildcard_candidates:
+        unwatched = [m for m, s in wildcard_candidates if m['view_count'] == 0]
+        if unwatched:
+            return random.choice(unwatched)
+        return random.choice([m for m, s in wildcard_candidates])
+    
+    # Fallback: just return a random media item
+    return random.choice(media_list) if media_list else None
+```
+
+2. Add UI toggle for wildcard suggestions
+3. Implement logic to ensure wildcard picks are sufficiently different from main recommendations
+4. Add tracking for wildcard acceptance rate
+5. Create algorithm to adjust wildcard selection based on user feedback
 
 # Test Strategy:
-Test form submission with various combinations of inputs. Verify validation works correctly. Test that the form data is correctly sent to the API endpoint.
+1. Verify wildcard suggestions differ meaningfully from primary/backup
+2. Test that wildcards still respect time constraints
+3. Verify UI toggle correctly enables/disables wildcard suggestions
+4. Test with various library sizes and compositions
+5. Verify tracking of wildcard acceptance rate works correctly
 
 # Subtasks:
-## 1. Create Mood Questionnaire Form Layout [pending]
+## 1. Design wildcard algorithm architecture [done]
 ### Dependencies: None
-### Description: Design and implement the basic form structure with all required input fields for the mood questionnaire
+### Description: Create the architectural design for the wildcard suggestion algorithm that selects content meaningfully different from primary recommendations
 ### Details:
-Create a responsive form layout with appropriate input types (radio buttons, sliders, text areas) for mood assessment questions. Include section headings, question text, and a submission button. Ensure the layout follows accessibility guidelines and is mobile-friendly.
+Define the core algorithm principles, selection criteria, and diversity parameters. Document how the algorithm will balance relevance with novelty. Include pseudocode for the main selection logic and identify required data sources.
 
-## 2. Implement Form Validation Logic [pending]
+## 2. Implement UI toggle for wildcard suggestions [done]
+### Dependencies: None
+### Description: Develop the user interface component that allows users to toggle wildcard suggestions on/off
+### Details:
+Create a visually distinct toggle in the recommendation interface. Design appropriate icons and tooltips explaining the feature. Ensure the toggle state persists across user sessions and implement smooth transitions when toggling.
+
+## 3. Develop content differentiation logic [done]
 ### Dependencies: 7.1
-### Description: Add client-side validation to ensure all required fields are completed correctly before submission
+### Description: Implement the core logic that ensures wildcard suggestions are sufficiently different from primary recommendations
 ### Details:
-Write validation functions to check that all required fields have valid inputs. Implement real-time validation where appropriate. Create validation rules for different question types (e.g., required fields, text length limits, valid numerical ranges for mood ratings).
+Code the differentiation metrics based on content attributes, user history, and popularity factors. Implement threshold calculations to determine sufficient difference. Create unit tests to verify differentiation effectiveness across various content types.
 
-## 3. Add Visual Feedback Components [pending]
-### Dependencies: 7.1, 7.2
-### Description: Implement visual cues and feedback elements to enhance user experience during form completion
-### Details:
-Add visual indicators for form validation status (error/success states). Implement progress indicators showing completion status. Create interactive elements like tooltips for additional guidance. Ensure feedback is accessible and clear for all users.
-
-## 4. Develop Data Submission Handling [pending]
+## 4. Implement user interaction tracking [done]
 ### Dependencies: 7.2, 7.3
-### Description: Create the functionality to collect, format and submit questionnaire data to the backend
+### Description: Create the system to track and analyze user interactions with wildcard suggestions
 ### Details:
-Implement form submission handler to collect all input values. Format data according to API requirements. Add loading states during submission. Implement success and error handling for API responses. Include retry logic for failed submissions and appropriate user notifications.
+Develop event tracking for wildcard-specific interactions including impressions, clicks, and engagement time. Set up data pipeline to store and process this information. Create dashboard for monitoring wildcard performance metrics.
+
+## 5. Build feedback-based adjustment mechanism [done]
+### Dependencies: 7.4
+### Description: Develop the system that adjusts wildcard selection based on user feedback and interaction data
+### Details:
+Implement machine learning model that optimizes wildcard selection based on collected feedback. Create A/B testing framework to evaluate different adjustment strategies. Develop automated adjustment thresholds that respond to changing user preferences.
 

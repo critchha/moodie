@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generatedAt": "2025-05-08T01:34:28.727Z",
-    "tasksAnalyzed": 15,
+    "generatedAt": "2025-05-08T17:39:30.598Z",
+    "tasksAnalyzed": 27,
     "thresholdScore": 5,
     "projectName": "Taskmaster",
     "usedResearch": true
@@ -9,123 +9,219 @@
   "complexityAnalysis": [
     {
       "taskId": 1,
-      "taskTitle": "Project Scaffolding and Repository Setup",
-      "complexityScore": 3,
-      "recommendedSubtasks": 3,
-      "expansionPrompt": "Break down the Project Scaffolding task into subtasks covering repository initialization, directory structure creation, and documentation setup.",
-      "reasoning": "This is a straightforward setup task with clear steps already outlined. The complexity is low as it involves standard repository initialization and structure creation without complex logic or dependencies."
+      "taskTitle": "Setup Project Structure and Docker Environment",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the 'Setup Project Structure and Docker Environment' task into 5 subtasks, including repository initialization, Docker configuration, development environment setup, CI/CD pipeline configuration, and documentation.",
+      "reasoning": "This task involves multiple technologies (Git, Docker, linting tools) and requires careful configuration. It's foundational for the project but has clear, well-defined steps. The existing 5 subtasks cover the scope well."
     },
     {
       "taskId": 2,
-      "taskTitle": "Setup Flask Backend Framework",
-      "complexityScore": 4,
-      "recommendedSubtasks": 4,
-      "expansionPrompt": "Break down the Flask Backend Framework setup into subtasks covering application initialization, route configuration, error handling, and environment configuration.",
-      "reasoning": "Setting up the Flask framework involves multiple components but follows standard patterns. The task requires some technical knowledge but is well-defined with clear implementation details provided."
+      "taskTitle": "Implement Plex API Integration",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the 'Implement Plex API Integration' task into 6 subtasks, including PlexAPI installation, connection module creation, metadata extraction, error handling, caching implementation, and comprehensive testing.",
+      "reasoning": "This task requires integration with an external API, error handling, and performance optimization through caching. It has dependencies and involves working with media metadata. The existing 6 subtasks appropriately cover all aspects of the integration."
     },
     {
       "taskId": 3,
-      "taskTitle": "Create SQLite Database Schema",
-      "complexityScore": 5,
-      "recommendedSubtasks": 4,
-      "expansionPrompt": "Break down the SQLite Database Schema task into subtasks covering model definition, database initialization, relationship configuration, and utility functions.",
-      "reasoning": "Database schema design requires careful planning of relationships and data types. The complexity comes from ensuring proper relationships between tables and implementing appropriate database operations."
+      "taskTitle": "Design and Implement Database Schema",
+      "complexityScore": 7,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the 'Design and Implement Database Schema' task into 5 subtasks, including schema design, SQLite implementation, ORM integration, data access layer creation, and migration/backup system development.",
+      "reasoning": "Database design requires careful planning and implementation of relationships, constraints, and access patterns. The task involves SQLAlchemy ORM, migration scripts, and backup functionality. The existing 5 subtasks cover the necessary components."
     },
     {
       "taskId": 4,
-      "taskTitle": "Implement Plex Authentication and Connection",
-      "complexityScore": 6,
-      "recommendedSubtasks": 5,
-      "expansionPrompt": "Break down the Plex Authentication task into subtasks covering token-based authentication, direct connection methods, secure credential storage, connection status monitoring, and error handling.",
-      "reasoning": "This task involves external API integration with authentication, which adds complexity. Handling different authentication methods, secure storage of credentials, and proper error handling for network issues increases the difficulty."
+      "taskTitle": "Develop Backend API with FastAPI",
+      "complexityScore": 8,
+      "recommendedSubtasks": 7,
+      "expansionPrompt": "Break down the 'Develop Backend API with FastAPI' task into 7 subtasks, including application structure setup, data models definition, core API endpoints implementation, authentication, error handling, logging/monitoring, and security configuration.",
+      "reasoning": "This task involves creating a complete API with multiple endpoints, authentication, error handling, and security considerations. It has dependencies on other major components and requires careful design. The existing 7 subtasks provide good coverage of all aspects."
     },
     {
       "taskId": 5,
-      "taskTitle": "Implement Plex Media Metadata Import",
-      "complexityScore": 7,
-      "recommendedSubtasks": 6,
-      "expansionPrompt": "Break down the Plex Media Metadata Import task into subtasks covering movie fetching, TV show fetching, metadata extraction, database synchronization, incremental updates, and background processing.",
-      "reasoning": "This task involves complex integration with the Plex API, handling large datasets, and implementing incremental updates. The need to process and normalize metadata from different media types adds significant complexity."
+      "taskTitle": "Implement Recommendation Engine Core Logic",
+      "complexityScore": 9,
+      "recommendedSubtasks": 8,
+      "expansionPrompt": "Break down the 'Implement Recommendation Engine Core Logic' task into 8 subtasks, including engine class structure, filtering functions, scoring algorithm, mood-genre mapping, duration-based selection, weighted scoring system, diversity logic, and performance optimization.",
+      "reasoning": "This is a complex task involving algorithmic development, multiple filtering mechanisms, scoring systems, and integration with other components. It's the core functionality of the application and requires careful design and optimization. The existing 8 subtasks appropriately break down this complexity."
     },
     {
       "taskId": 6,
-      "taskTitle": "Create Basic Frontend Structure",
-      "complexityScore": 4,
+      "taskTitle": "Implement Comfort Mode Logic",
+      "complexityScore": 6,
       "recommendedSubtasks": 4,
-      "expansionPrompt": "Break down the Basic Frontend Structure task into subtasks covering HTML layout, CSS styling, JavaScript functionality, and responsive design implementation.",
-      "reasoning": "Creating the frontend structure is moderately complex as it involves multiple technologies (HTML, CSS, JS) but follows standard web development patterns. The task is well-defined with clear implementation details."
+      "expansionPrompt": "Break down the 'Implement Comfort Mode Logic' task into 4 subtasks, including algorithm design, database schema updates, view count synchronization, and UI integration.",
+      "reasoning": "This feature extends the recommendation engine with specific logic for frequently rewatched content. It's moderately complex as it requires database updates and integration with the UI, but has a narrower scope than the core recommendation engine. The existing 4 subtasks cover the necessary components."
     },
     {
       "taskId": 7,
-      "taskTitle": "Implement Mood Questionnaire UI",
-      "complexityScore": 5,
-      "recommendedSubtasks": 4,
-      "expansionPrompt": "Break down the Mood Questionnaire UI task into subtasks covering form creation, validation logic, visual feedback implementation, and data submission handling.",
-      "reasoning": "This task requires creating interactive form elements with validation and visual feedback. The complexity comes from ensuring good user experience and proper data handling before submission."
+      "taskTitle": "Develop Wildcard Suggestion Feature",
+      "complexityScore": 7,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the 'Develop Wildcard Suggestion Feature' task into 5 subtasks, including algorithm architecture design, UI toggle implementation, content differentiation logic, user interaction tracking, and feedback-based adjustment mechanism.",
+      "reasoning": "This feature requires developing an algorithm that intentionally selects content outside user preferences while maintaining relevance. It involves UI components, tracking mechanisms, and feedback systems. The existing 5 subtasks provide good coverage of these aspects."
     },
     {
       "taskId": 8,
-      "taskTitle": "Implement Recommendation Display UI",
-      "complexityScore": 5,
-      "recommendedSubtasks": 4,
-      "expansionPrompt": "Break down the Recommendation Display UI task into subtasks covering results layout, data population from API, transition animations, and empty state handling.",
-      "reasoning": "This task involves dynamic content display and user interactions. The complexity comes from handling various data states, implementing transitions, and providing a smooth user experience."
+      "taskTitle": "Implement User Feedback Logging System",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the 'Implement User Feedback Logging System' task into 5 subtasks, including API endpoint design, database integration, frontend form development, analytics dashboard creation, and data export functionality.",
+      "reasoning": "This task involves creating a complete feedback system with frontend and backend components, database storage, and analytics. It has moderate complexity with clear, well-defined components. The existing 5 subtasks cover all necessary aspects."
     },
     {
       "taskId": 9,
-      "taskTitle": "Implement Feedback Collection UI",
-      "complexityScore": 5,
-      "recommendedSubtasks": 4,
-      "expansionPrompt": "Break down the Feedback Collection UI task into subtasks covering form creation, star rating implementation, form validation, and submission handling.",
-      "reasoning": "Similar to the mood questionnaire, this task involves interactive form elements but with the added complexity of implementing a star rating system and handling the relationship with previous recommendations."
+      "taskTitle": "Develop Machine Learning Model for Personalized Scoring",
+      "complexityScore": 9,
+      "recommendedSubtasks": 7,
+      "expansionPrompt": "Break down the 'Develop Machine Learning Model for Personalized Scoring' task into 7 subtasks, including data collection/preprocessing, feature engineering, model architecture design, training implementation, prediction integration, model versioning/retraining, and performance evaluation.",
+      "reasoning": "This is a complex ML task requiring data processing, model development, training pipelines, and integration with the existing system. It involves specialized knowledge and careful implementation. The existing 7 subtasks appropriately break down this complexity."
     },
     {
       "taskId": 10,
-      "taskTitle": "Implement Basic Recommendation Engine",
+      "taskTitle": "Develop Frontend UI with Tailwind CSS",
       "complexityScore": 7,
-      "recommendedSubtasks": 5,
-      "expansionPrompt": "Break down the Basic Recommendation Engine task into subtasks covering filtering logic, mood-based rules, session length handling, recommendation storage, and API endpoint implementation.",
-      "reasoning": "This task involves complex business logic for filtering and recommending content based on multiple criteria. The need to handle various edge cases and fallback scenarios increases complexity."
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the 'Develop Frontend UI with Tailwind CSS' task into 6 subtasks, including project setup, Tailwind configuration, component architecture design, form implementation, API service layer creation, and responsive design implementation.",
+      "reasoning": "This task involves setting up a complete frontend application with React and Tailwind CSS, including component architecture, form handling, and API integration. It has moderate to high complexity. The existing 6 subtasks cover the necessary components."
     },
     {
       "taskId": 11,
-      "taskTitle": "Implement Feedback Collection and Storage",
-      "complexityScore": 5,
-      "recommendedSubtasks": 4,
-      "expansionPrompt": "Break down the Feedback Collection and Storage task into subtasks covering API endpoint creation, data validation, database operations, and feedback retrieval utilities.",
-      "reasoning": "This task requires careful data validation and storage. The complexity is moderate as it involves standard CRUD operations but needs to handle various data types and validation rules."
+      "taskTitle": "Implement Recommendation Display Component",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the 'Implement Recommendation Display Component' task into 5 subtasks, including card component creation, animation effects, detailed view modal, selection functionality, and loading/error state handling.",
+      "reasoning": "This task focuses on creating a specific UI component with various states, interactions, and visual elements. It has moderate complexity with clear, well-defined components. The existing 5 subtasks provide good coverage of these aspects."
     },
     {
       "taskId": 12,
-      "taskTitle": "Implement ML Model Training",
-      "complexityScore": 8,
-      "recommendedSubtasks": 6,
-      "expansionPrompt": "Break down the ML Model Training task into subtasks covering data preparation, feature engineering, model selection, training pipeline, model serialization, and API endpoint implementation.",
-      "reasoning": "Machine learning implementation is inherently complex, requiring data preparation, feature engineering, and model training. The need to handle various edge cases like insufficient data adds to the complexity."
+      "taskTitle": "Implement Feedback Collection UI",
+      "complexityScore": 5,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down the 'Implement Feedback Collection UI' task into 4 subtasks, including form component creation, form validation, API integration, and notification system implementation.",
+      "reasoning": "This task involves creating a feedback form with validation, API integration, and notifications. It's relatively straightforward with well-defined requirements. The existing 4 subtasks cover all necessary aspects."
     },
     {
       "taskId": 13,
-      "taskTitle": "Implement ML-Based Recommendation Scoring",
-      "complexityScore": 8,
+      "taskTitle": "Implement Configuration Management",
+      "complexityScore": 6,
       "recommendedSubtasks": 5,
-      "expansionPrompt": "Break down the ML-Based Recommendation Scoring task into subtasks covering feature extraction, model integration, score calculation, fallback mechanisms, and result ranking.",
-      "reasoning": "This task builds on the ML model to score and rank recommendations, requiring complex feature extraction and integration with the existing recommendation system. Handling fallbacks and edge cases adds significant complexity."
+      "expansionPrompt": "Break down the 'Implement Configuration Management' task into 5 subtasks, including configuration manager module development, API endpoint creation, validation logic implementation, admin UI development, and versioning/backup system implementation.",
+      "reasoning": "This task involves creating a system for managing application configuration with validation, versioning, and UI components. It has moderate complexity with clear, well-defined components. The existing 5 subtasks cover all necessary aspects."
     },
     {
       "taskId": 14,
-      "taskTitle": "Dockerize the Application",
-      "complexityScore": 5,
-      "recommendedSubtasks": 4,
-      "expansionPrompt": "Break down the Dockerization task into subtasks covering Dockerfile creation, docker-compose configuration, volume management, and deployment documentation.",
-      "reasoning": "Containerizing an application requires understanding of Docker concepts and proper configuration. The complexity comes from ensuring all components work correctly within the container environment."
+      "taskTitle": "Implement API Integration Tests",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the 'Implement API Integration Tests' task into 6 subtasks, including testing framework setup, mock data creation, endpoint testing, error handling testing, performance testing, and end-to-end test scenario development.",
+      "reasoning": "This task involves creating comprehensive tests for all API endpoints, including mocking, error handling, and performance testing. It has dependencies on multiple other tasks and requires careful planning. The existing 6 subtasks provide good coverage of all testing aspects."
     },
     {
       "taskId": 15,
-      "taskTitle": "Implement Manual Retraining UI and Polish",
+      "taskTitle": "Finalize Docker Deployment",
+      "complexityScore": 8,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the 'Finalize Docker Deployment' task into 6 subtasks, including production docker-compose configuration, frontend Dockerfile development, environment variable management, backup/restore scripts, health monitoring implementation, and comprehensive deployment documentation.",
+      "reasoning": "This task involves finalizing production-ready Docker configurations, environment management, monitoring, and documentation. It has high complexity due to its critical nature for production deployment. The existing 6 subtasks cover all necessary components."
+    },
+    {
+      "taskId": 16,
+      "taskTitle": "Migrate Backend from Flask to FastAPI",
+      "complexityScore": 8,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the 'Migrate Backend from Flask to FastAPI' task into 6 subtasks, including application structure setup, endpoint migration, authentication system conversion, documentation implementation, performance optimization, and comprehensive testing.",
+      "reasoning": "This migration task involves rewriting an existing application with a different framework while maintaining functionality. It requires deep understanding of both frameworks and careful testing to ensure no regressions. Recommend 6 subtasks to cover all aspects of the migration."
+    },
+    {
+      "taskId": 17,
+      "taskTitle": "Implement Database Schema with ORM and Migration System",
+      "complexityScore": 7,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the 'Implement Database Schema with ORM and Migration System' task into 5 subtasks, including schema design, ORM model implementation, relationship configuration, migration system setup, and performance optimization.",
+      "reasoning": "This task involves designing and implementing a database schema with ORM models and a migration system. It requires careful planning of relationships and indexes for performance. Recommend 5 subtasks to cover schema design, implementation, and optimization."
+    },
+    {
+      "taskId": 18,
+      "taskTitle": "Implement Advanced Configuration Management System",
+      "complexityScore": 7,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the 'Implement Advanced Configuration Management System' task into 5 subtasks, including user preference models, admin configuration endpoints, caching mechanism, validation system, and documentation.",
+      "reasoning": "This task involves creating a sophisticated configuration system with user and admin components, caching, and validation. It has moderate to high complexity with several interconnected parts. Recommend 5 subtasks to cover all aspects of the system."
+    },
+    {
+      "taskId": 19,
+      "taskTitle": "Implement Wildcard and Comfort Recommendation Features",
+      "complexityScore": 8,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the 'Implement Wildcard and Comfort Recommendation Features' task into 6 subtasks, including algorithm design for both features, database schema extensions, scoring system implementation, user preference integration, testing framework, and performance optimization.",
+      "reasoning": "This task involves implementing two complex recommendation features with their own algorithms, scoring systems, and user preferences. It requires integration with the existing recommendation engine. Recommend 6 subtasks to cover both features and their integration."
+    },
+    {
+      "taskId": 20,
+      "taskTitle": "Implement Machine Learning Recommendation Engine with Collaborative Filtering",
+      "complexityScore": 10,
+      "recommendedSubtasks": 8,
+      "expansionPrompt": "Break down the 'Implement Machine Learning Recommendation Engine with Collaborative Filtering' task into 8 subtasks, including data collection/preprocessing, feature engineering, collaborative filtering algorithm implementation, model training pipeline, evaluation framework, API integration, feedback loop system, and performance optimization.",
+      "reasoning": "This is a highly complex ML task requiring sophisticated algorithms, data processing, training pipelines, and integration with the existing system. It represents the most advanced recommendation capability. Recommend 8 subtasks to properly address all aspects of this complex feature."
+    },
+    {
+      "taskId": 21,
+      "taskTitle": "Migrate Frontend to React Framework",
+      "complexityScore": 9,
+      "recommendedSubtasks": 7,
+      "expansionPrompt": "Break down the 'Migrate Frontend to React Framework' task into 7 subtasks, including project scaffolding, component architecture design, state management implementation, API integration, responsive design implementation, accessibility compliance, and performance optimization.",
+      "reasoning": "This migration involves rewriting the entire frontend with a new framework while maintaining functionality and adding best practices. It's a major undertaking requiring careful planning and implementation. Recommend 7 subtasks to cover all aspects of the migration."
+    },
+    {
+      "taskId": 22,
+      "taskTitle": "Implement Comprehensive UI/UX Enhancements and User Experience Flows",
+      "complexityScore": 8,
+      "recommendedSubtasks": 7,
+      "expansionPrompt": "Break down the 'Implement Comprehensive UI/UX Enhancements' task into 7 subtasks, including onboarding flow design, settings panel implementation, feedback system enhancement, recommendation mode UI, loading state improvements, error handling system, and microinteraction implementation.",
+      "reasoning": "This task involves enhancing multiple aspects of the user interface and experience with sophisticated interactions and states. It requires both design and technical implementation skills. Recommend 7 subtasks to cover all the enhancement areas."
+    },
+    {
+      "taskId": 23,
+      "taskTitle": "Implement Comprehensive Test Suite for Backend and Frontend",
+      "complexityScore": 8,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the 'Implement Comprehensive Test Suite' task into 6 subtasks, including backend test framework setup, API integration tests, frontend component tests, end-to-end testing implementation, visual regression testing, and CI integration.",
+      "reasoning": "This task involves creating a complete testing strategy covering both backend and frontend with multiple testing approaches. It requires expertise in different testing frameworks and methodologies. Recommend 6 subtasks to cover all testing aspects."
+    },
+    {
+      "taskId": 24,
+      "taskTitle": "Set up CI/CD Pipeline with GitHub Actions for Automated Testing and Deployment",
+      "complexityScore": 8,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the 'Set up CI/CD Pipeline' task into 6 subtasks, including repository configuration, workflow file creation, testing integration, build process automation, deployment workflow implementation, and notification/monitoring setup.",
+      "reasoning": "This task involves setting up a complete CI/CD pipeline with multiple workflows for different stages of the development process. It requires expertise in GitHub Actions and deployment automation. Recommend 6 subtasks to cover all aspects of the pipeline."
+    },
+    {
+      "taskId": 25,
+      "taskTitle": "Containerization Hardening and Production Deployment Infrastructure",
+      "complexityScore": 9,
+      "recommendedSubtasks": 7,
+      "expansionPrompt": "Break down the 'Containerization Hardening and Production Deployment Infrastructure' task into 7 subtasks, including Dockerfile security hardening, multi-environment compose configuration, cloud infrastructure setup, deployment automation, SSL/TLS implementation, monitoring system integration, and disaster recovery planning.",
+      "reasoning": "This task involves hardening container security, setting up production infrastructure, and implementing monitoring for a robust deployment. It's highly complex with security implications. Recommend 7 subtasks to cover all aspects of production infrastructure."
+    },
+    {
+      "taskId": 26,
+      "taskTitle": "Comprehensive Documentation Update and Standardization",
       "complexityScore": 6,
       "recommendedSubtasks": 5,
-      "expansionPrompt": "Break down the Manual Retraining UI task into subtasks covering admin panel creation, statistics display, retraining functionality, UI polish, and responsive design improvements.",
-      "reasoning": "This task combines UI implementation with backend integration for model retraining. The complexity comes from providing real-time feedback on training status and implementing various UI improvements across the application."
+      "expansionPrompt": "Break down the 'Comprehensive Documentation Update' task into 5 subtasks, including README revision, API documentation with OpenAPI, user guide creation, developer onboarding materials, and documentation standardization process.",
+      "reasoning": "This task involves updating all project documentation to reflect recent changes and standardizing the format. It's moderately complex with clear, well-defined components. Recommend 5 subtasks to cover all documentation aspects."
+    },
+    {
+      "taskId": 27,
+      "taskTitle": "Final QA, User Acceptance Testing, and Production Launch Preparation",
+      "complexityScore": 8,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down the 'Final QA and Production Launch Preparation' task into 6 subtasks, including regression testing, user acceptance testing coordination, security audit, performance optimization, launch plan creation, and post-launch monitoring setup.",
+      "reasoning": "This task involves comprehensive testing, user feedback collection, and preparation for production launch. It's critical for project success and requires coordination across multiple areas. Recommend 6 subtasks to cover all pre-launch activities."
     }
   ]
 }

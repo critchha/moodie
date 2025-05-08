@@ -121,4 +121,150 @@ input, select, textarea {
 /* Touch-friendly elements */
 input, select, textarea, button {
   touch-action: manipulation;
+}
+
+/* Form validation feedback */
+input:invalid {
+  outline: 2px solid #e53e3e;
+}
+input:valid {
+  outline: 2px solid #38a169;
+}
+
+/* Selection highlighting with animation */
+.mood-options label input:checked + span,
+.group-options label input:checked + span,
+.session-options label input:checked + span,
+.mood-options label span.selected,
+.group-options label span.selected,
+.session-options label span.selected {
+  background: var(--accent-color);
+  color: #fff;
+  border-radius: var(--border-radius);
+  padding: 0.2em 0.6em;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px #f59e4233;
+}
+
+.mood-options label span,
+.group-options label span,
+.session-options label span {
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+
+/* Focus/active state for radio label */
+.mood-options label:focus-within span,
+.group-options label:focus-within span,
+.session-options label:focus-within span {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  background: #ede9fe;
+  color: var(--primary-color);
+  box-shadow: 0 0 0 2px #4f46e533;
+}
+
+/* Progress bar (will be further modernized) */
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background: #e5e7eb;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+.progress-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1 0%, #f59e42 100%);
+  width: 0;
+  transition: width 0.3s;
+}
+
+/* Helper text styling */
+.helper-text {
+  color: #555;
+  font-size: 0.97rem;
+  margin-bottom: 0.5rem;
+  margin-top: -0.5rem;
+}
+
+/* Focus styles for accessibility */
+input[type="radio"]:focus + span,
+.btn:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px #f59e4233;
+}
+
+input[type="radio"]:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* For tooltips (to be implemented) */
+.tooltip {
+  position: relative;
+  cursor: pointer;
+}
+.tooltip .tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  width: 200px;
+  background: #22223b;
+  color: #fff;
+  text-align: left;
+  border-radius: 6px;
+  padding: 0.5em 1em;
+  position: absolute;
+  z-index: 10;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: opacity 0.2s;
+  font-size: 0.95rem;
+}
+.tooltip:focus .tooltip-text,
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Success message styling */
+.success-message {
+  background: #e6fffa;
+  color: #047857;
+  border: 1px solid #2dd4bf;
+  border-radius: var(--border-radius);
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  display: block;
+  animation: fadeIn 0.4s;
+}
+
+/* Error message animation */
+#error-message {
+  background: #ffeaea;
+  color: #b91c1c;
+  border: 1px solid #e53e3e;
+  border-radius: var(--border-radius);
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  display: block;
+  animation: fadeIn 0.4s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Icon for messages */
+.message-icon {
+  margin-right: 0.5em;
+  font-size: 1.2em;
+  vertical-align: middle;
 } 

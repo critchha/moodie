@@ -1,137 +1,164 @@
 # Task ID: 12
-# Title: Implement ML Model Training
-# Status: pending
-# Dependencies: 10, 11
-# Priority: high
-# Description: Create functionality to train a machine learning model based on collected feedback data.
+# Title: Implement Feedback Collection UI
+# Status: done
+# Dependencies: 8, 10
+# Priority: medium
+# Description: Create a user interface for collecting feedback after watching recommended content.
 # Details:
-1. Create ML module in `app/backend/ml_model.py`
-2. Implement data preparation functions:
-   ```python
-   def prepare_training_data(db_session):
-       """Prepare training data from feedback and recommendations"""
-       # Join feedback with recommendations and media
-       query = db_session.query(
-           Feedback, Recommendation, Media
-       ).join(
-           Recommendation, Feedback.recommendation_id == Recommendation.id
-       ).join(
-           Media, Recommendation.media_id == Media.id
-       )
-       
-       results = query.all()
-       
-       X = []
-       y = []
-       
-       for feedback, recommendation, media in results:
-           # Extract features
-           mood_data = json.loads(recommendation.mood)
-           
-           # One-hot encode categorical features
-           mood_funny = 1 if mood_data.get('mood') == 'funny' else 0
-           mood_action = 1 if mood_data.get('mood') == 'action' else 0
-           mood_dramatic = 1 if mood_data.get('mood') == 'dramatic' else 0
-           mood_relaxing = 1 if mood_data.get('mood') == 'relaxing' else 0
-           
-           group_solo = 1 if recommendation.group_size == 'solo' else 0
-           group_couple = 1 if recommendation.group_size == 'couple' else 0
-           group_group = 1 if recommendation.group_size == 'group' else 0
-           
-           session_short = 1 if recommendation.session_length == 'short' else 0
-           session_medium = 1 if recommendation.session_length == 'medium' else 0
-           session_binge = 1 if recommendation.session_length == 'binge' else 0
-           
-           # Extract genre features
-           genres = media.genres.split(',') if media.genres else []
-           genre_comedy = 1 if 'Comedy' in genres else 0
-           genre_action = 1 if 'Action' in genres else 0
-           genre_drama = 1 if 'Drama' in genres else 0
-           genre_thriller = 1 if 'Thriller' in genres else 0
-           genre_scifi = 1 if 'Science Fiction' in genres else 0
-           
-           # Create feature vector
-           features = [
-               mood_funny, mood_action, mood_dramatic, mood_relaxing,
-               group_solo, group_couple, group_group,
-               session_short, session_medium, session_binge,
-               genre_comedy, genre_action, genre_drama, genre_thriller, genre_scifi,
-               media.duration or 0,  # Handle None values
-               media.year or 0  # Handle None values
-           ]
-           
-           X.append(features)
-           
-           # Target variable: positive experience (rating >= 4 and would watch again)
-           positive_experience = 1 if feedback.rating >= 4 and feedback.would_watch_again else 0
-           y.append(positive_experience)
-       
-       return np.array(X), np.array(y)
-   ```
-3. Implement model training function:
-   ```python
-   def train_model(X, y):
-       """Train a logistic regression model"""
-       if len(np.unique(y)) < 2:
-           # Not enough diversity in target variable
-           return None
-           
-       model = LogisticRegression()
-       model.fit(X, y)
-       return model
-   ```
-4. Implement model serialization and loading:
-   ```python
-   def save_model(model, filepath='app/models/recommendation_model.pkl'):
-       """Save model to disk"""
-       joblib.dump(model, filepath)
-       
-   def load_model(filepath='app/models/recommendation_model.pkl'):
-       """Load model from disk"""
-       try:
-           return joblib.load(filepath)
-       except:
-           return None
-   ```
-5. Create API endpoint to trigger model training
+1. Create a Feedback Form component:
+```jsx
+import React, { useState } from 'react';
+
+const FeedbackForm = ({ media, onSubmit, onCancel }) => {
+  const [feedback, setFeedback] = useState({
+    mediaId: media.id,
+    watchedCompletion: true,
+    wouldWatchAgain: null,
+    rating: 0
+  });
+  
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFeedback({
+      ...feedback,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+  
+  const handleRatingChange = (rating) => {
+    setFeedback({
+      ...feedback,
+      rating
+    });
+  };
+  
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(feedback);
+  };
+  
+  return (
+    <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+      <h2 className="text-xl font-bold mb-4">How was {media.title}?</h2>
+      
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              name="watchedCompletion"
+              checked={feedback.watchedCompletion}
+              onChange={handleChange}
+              className="mr-2"
+            />
+            <span className="text-gray-700">I watched it to completion</span>
+          </label>
+        </div>
+        
+        <div className="mb-4">
+          <p className="block text-gray-700 text-sm font-bold mb-2">Would you watch this again?</p>
+          <div className="flex space-x-4">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="wouldWatchAgain"
+                value="true"
+                checked={feedback.wouldWatchAgain === true}
+                onChange={() => setFeedback({...feedback, wouldWatchAgain: true})}
+                className="mr-2"
+              />
+              <span className="text-gray-700">Yes</span>
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="wouldWatchAgain"
+                value="false"
+                checked={feedback.wouldWatchAgain === false}
+                onChange={() => setFeedback({...feedback, wouldWatchAgain: false})}
+                className="mr-2"
+              />
+              <span className="text-gray-700">No</span>
+            </label>
+          </div>
+        </div>
+        
+        <div className="mb-6">
+          <p className="block text-gray-700 text-sm font-bold mb-2">Rating</p>
+          <div className="flex space-x-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={() => handleRatingChange(star)}
+                className={`text-2xl ${feedback.rating >= star ? 'text-yellow-500' : 'text-gray-300'}`}
+              >
+                ★
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <button
+            type="submit"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            disabled={feedback.wouldWatchAgain === null || feedback.rating === 0}
+          >
+            Submit Feedback
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            Skip
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default FeedbackForm;
+```
+
+2. Implement API service for submitting feedback
+3. Create modal for feedback collection
+4. Add validation for required fields
+5. Implement success/error notifications
+6. Create reminder system for collecting feedback
 
 # Test Strategy:
-Test model training with sample feedback data. Verify model can be saved and loaded correctly. Test handling of edge cases like insufficient data.
+1. Test form validation with various input combinations
+2. Verify API integration for feedback submission
+3. Test modal appearance and dismissal
+4. Verify star rating functionality
+5. Test form submission with valid and invalid data
+6. Verify success/error notifications display correctly
 
 # Subtasks:
-## 1. Data Preparation [pending]
+## 1. Create Feedback Form Component [done]
 ### Dependencies: None
-### Description: Collect, clean, and preprocess the dataset for model training
+### Description: Design and implement the feedback form UI component with appropriate fields and styling
 ### Details:
-Gather relevant data from sources, handle missing values, remove outliers, normalize/standardize features, and split into training/validation/test sets. Document data quality metrics and preprocessing steps.
+Create a reusable feedback form component with fields for rating, comments, and user information. Implement responsive design for mobile and desktop views. Include proper styling according to the application's design system.
 
-## 2. Feature Engineering [pending]
+## 2. Implement Form Validation [done]
 ### Dependencies: 12.1
-### Description: Create and select optimal features for the model
+### Description: Add client-side validation to the feedback form to ensure data quality
 ### Details:
-Perform feature extraction, transformation, and selection. Create new features if needed, apply dimensionality reduction techniques, and evaluate feature importance. Document all feature engineering decisions.
+Implement validation rules for all form fields including required fields, character limits, and format validation. Add visual indicators for validation errors and helpful error messages. Ensure validation runs on both input change and form submission.
 
-## 3. Model Selection [pending]
-### Dependencies: 12.2
-### Description: Evaluate and select the best model architecture
+## 3. Integrate with Feedback API [done]
+### Dependencies: 12.1, 12.2
+### Description: Connect the feedback form to the backend API for data submission
 ### Details:
-Benchmark different algorithms (e.g., regression, tree-based, neural networks), perform hyperparameter tuning, and compare performance metrics. Document selection criteria and performance comparisons.
+Create service functions to handle API communication. Implement proper error handling for network failures. Add loading states during submission. Ensure the form data is correctly formatted according to API requirements.
 
-## 4. Training Pipeline Implementation [pending]
+## 4. Implement Notification System [done]
 ### Dependencies: 12.3
-### Description: Develop a reproducible training pipeline
+### Description: Add success and error notifications for feedback submission
 ### Details:
-Create a modular pipeline for data ingestion, preprocessing, model training, and evaluation. Implement cross-validation, early stopping, and logging of metrics. Ensure reproducibility with fixed random seeds.
-
-## 5. Model Serialization [pending]
-### Dependencies: 12.4
-### Description: Save and version the trained model
-### Details:
-Implement model serialization using appropriate formats (e.g., pickle, ONNX, TensorFlow SavedModel). Set up version control for models and create metadata documentation for each version.
-
-## 6. API Endpoint Implementation [pending]
-### Dependencies: 12.5
-### Description: Create API endpoints for model inference
-### Details:
-Develop RESTful API endpoints for model inference, implement input validation, error handling, and response formatting. Create documentation for API usage and deploy with appropriate scaling considerations.
+Create toast or notification components to display submission status. Implement success messages with appropriate styling. Handle different error scenarios with helpful error messages. Ensure notifications are accessible and can be dismissed by users.
 

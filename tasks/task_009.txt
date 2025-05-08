@@ -1,84 +1,121 @@
 # Task ID: 9
-# Title: Implement Feedback Collection UI
-# Status: pending
-# Dependencies: 8
+# Title: Develop Machine Learning Model for Personalized Scoring
+# Status: done
+# Dependencies: 5, 8
 # Priority: medium
-# Description: Create the user interface for collecting user feedback on watched recommendations.
+# Description: Implement a lightweight machine learning model that improves recommendations based on user feedback.
 # Details:
-1. Create HTML structure for feedback form:
-   ```html
-   <div class="feedback-container">
-       <h2>How was "<span id="feedback-title"></span>"?</h2>
-       
-       <form id="feedback-form">
-           <input type="hidden" id="recommendation-id" name="recommendation_id">
-           
-           <div class="form-group">
-               <h3>Did you watch it to completion?</h3>
-               <div class="completion-options">
-                   <label><input type="radio" name="watched_completion" value="true" required> Yes</label>
-                   <label><input type="radio" name="watched_completion" value="false" required> No</label>
-               </div>
-           </div>
-           
-           <div class="form-group">
-               <h3>Would you watch it again?</h3>
-               <div class="rewatch-options">
-                   <label><input type="radio" name="would_watch_again" value="true" required> Yes</label>
-                   <label><input type="radio" name="would_watch_again" value="false" required> No</label>
-               </div>
-           </div>
-           
-           <div class="form-group">
-               <h3>Rating:</h3>
-               <div class="star-rating">
-                   <input type="radio" id="star5" name="rating" value="5" required>
-                   <label for="star5">★</label>
-                   <input type="radio" id="star4" name="rating" value="4">
-                   <label for="star4">★</label>
-                   <input type="radio" id="star3" name="rating" value="3">
-                   <label for="star3">★</label>
-                   <input type="radio" id="star2" name="rating" value="2">
-                   <label for="star2">★</label>
-                   <input type="radio" id="star1" name="rating" value="1">
-                   <label for="star1">★</label>
-               </div>
-           </div>
-           
-           <button type="submit" class="btn primary-btn">Submit Feedback</button>
-       </form>
-   </div>
-   ```
-2. Add JavaScript to handle form submission and API call
-3. Implement star rating functionality with visual feedback
-4. Add transition animations between recommendation and feedback
-5. Show confirmation message after feedback submission
+1. Create ML module using scikit-learn:
+
+```python
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+import joblib
+
+class RecommendationModel:
+    def __init__(self, db_connector):
+        self.db = db_connector
+        self.model = None
+        self.load_model()
+    
+    def load_model(self):
+        try:
+            self.model = joblib.load('ml/recommendation_model.joblib')
+        except:
+            # Initialize new model if none exists
+            self.model = RandomForestRegressor(n_estimators=100, random_state=42)
+    
+    def save_model(self):
+        joblib.dump(self.model, 'ml/recommendation_model.joblib')
+    
+    def prepare_training_data(self):
+        # Get feedback data from database
+        query = """
+        SELECT m.media_id, m.title, m.type, m.duration,
+               f.watched_completion, f.would_watch_again, f.rating
+        FROM media m
+        JOIN user_feedback f ON m.media_id = f.media_id
+        """
+        data = pd.read_sql(query, self.db.engine)
+        
+        # Feature engineering
+        X = data[['type', 'duration', 'watched_completion', 'would_watch_again']]
+        # One-hot encode categorical features
+        X = pd.get_dummies(X, columns=['type'])
+        
+        # Target variable
+        y = data['rating']
+        
+        return X, y
+    
+    def train(self):
+        X, y = self.prepare_training_data()
+        if len(X) < 10:  # Not enough data
+            return False
+        
+        self.model.fit(X, y)
+        self.save_model()
+        return True
+    
+    def predict_score(self, media_features):
+        # Prepare features in same format as training data
+        # ... (implementation details)
+        
+        return self.model.predict([media_features])[0]
+```
+
+2. Implement model training endpoint
+3. Create feature extraction from media metadata
+4. Add scheduled retraining job
+5. Implement model versioning and rollback capability
 
 # Test Strategy:
-Test feedback form with various input combinations. Verify the star rating system works correctly. Test that feedback data is correctly sent to the API endpoint.
+1. Test model training with various dataset sizes
+2. Verify prediction accuracy improves with more feedback
+3. Test model persistence and loading
+4. Benchmark prediction performance
+5. Test with edge cases (new genres, extreme durations, etc.)
 
 # Subtasks:
-## 1. Create Feedback Form Layout [pending]
+## 1. Data Collection and Preprocessing [done]
 ### Dependencies: None
-### Description: Design and implement the basic structure of the feedback collection form
+### Description: Gather and prepare user interaction data for model training
 ### Details:
-Create a responsive form layout with appropriate sections for user information, recommendation feedback, star rating placeholder, and comments. Include proper styling and ensure the form matches the overall application design.
+Collect user behavior data, clean the dataset, handle missing values, normalize features, and split into training/validation/test sets. Ensure data privacy compliance and implement data anonymization where necessary.
 
-## 2. Implement Star Rating Component [pending]
+## 2. Feature Engineering [done]
 ### Dependencies: 9.1
-### Description: Develop an interactive star rating system for users to rate recommendations
+### Description: Create relevant features for the personalized scoring model
 ### Details:
-Create a reusable star rating component that allows users to select 1-5 stars. Include hover effects, selected state styling, and ensure it's accessible. The component should provide the selected rating value to the parent form.
+Identify and extract meaningful features from user data, including behavioral patterns, preferences, historical interactions, and contextual information. Implement feature selection techniques to determine the most predictive variables.
 
-## 3. Add Form Validation [pending]
-### Dependencies: 9.1, 9.2
-### Description: Implement client-side validation for all form fields
+## 3. ML Module Architecture Design [done]
+### Dependencies: 9.2
+### Description: Design the architecture for the machine learning scoring module
 ### Details:
-Add validation rules for required fields, proper formatting of inputs, and appropriate error messages. Ensure the star rating is required and validate that users have selected a rating before submission. Display validation errors in a user-friendly manner.
+Define the ML model architecture, select appropriate algorithms (regression, classification, or ranking models), and determine how the model will interface with the existing recommendation system. Create a technical specification document.
 
-## 4. Handle Form Submission [pending]
+## 4. Model Training Implementation [done]
 ### Dependencies: 9.3
-### Description: Implement the submission logic and success/error states
+### Description: Implement the training pipeline for the personalized scoring model
 ### Details:
-Create the submission handler that collects all form data, including the star rating, and prepares it for API submission. Implement loading states during submission, success messages upon completion, and appropriate error handling. Include the ability to reference which recommendation the feedback relates to.
+Develop the model training code, implement hyperparameter tuning, create validation procedures, and establish metrics for model evaluation. Set up the infrastructure for model training including necessary computational resources.
+
+## 5. Prediction Integration [done]
+### Dependencies: 9.4
+### Description: Integrate the trained model into the recommendation system
+### Details:
+Develop APIs for real-time scoring, implement caching mechanisms for performance optimization, and ensure seamless integration with the existing recommendation pipeline. Include fallback mechanisms for handling prediction failures.
+
+## 6. Model Versioning and Scheduled Retraining [done]
+### Dependencies: 9.5
+### Description: Implement model versioning and automated retraining processes
+### Details:
+Create a system for model versioning, develop automated retraining pipelines triggered by performance degradation or scheduled intervals, and implement A/B testing capabilities to compare model versions in production.
+
+## 7. Performance Evaluation and Monitoring [done]
+### Dependencies: 9.6
+### Description: Establish monitoring systems and evaluate model performance
+### Details:
+Implement dashboards for tracking model performance metrics, set up alerts for performance degradation, conduct offline and online evaluation of the model, and create reports comparing the personalized scoring against baseline approaches.
 

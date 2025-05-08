@@ -1,79 +1,62 @@
 # Task ID: 6
-# Title: Create Basic Frontend Structure
-# Status: pending
-# Dependencies: 2
+# Title: Implement Comfort Mode Logic
+# Status: done
+# Dependencies: 5
 # Priority: medium
-# Description: Develop the initial HTML, CSS, and JavaScript structure for the frontend application.
+# Description: Develop the Comfort Mode feature that recommends frequently rewatched content.
 # Details:
-1. Create basic HTML structure in `app/frontend/index.html`:
-   ```html
-   <!DOCTYPE html>
-   <html lang="en">
-   <head>
-       <meta charset="UTF-8">
-       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-       <title>Mood-Based Plex Recommender</title>
-       <link rel="stylesheet" href="css/styles.css">
-   </head>
-   <body>
-       <div class="container">
-           <header>
-               <h1>Mood-Based Plex Recommender</h1>
-           </header>
-           
-           <main>
-               <div id="mood-form" class="section">
-                   <!-- Mood questionnaire will go here -->
-               </div>
-               
-               <div id="recommendation" class="section hidden">
-                   <!-- Recommendation results will go here -->
-               </div>
-               
-               <div id="feedback-form" class="section hidden">
-                   <!-- Feedback form will go here -->
-               </div>
-           </main>
-           
-           <footer>
-               <p>Connected to Plex: <span id="plex-status">Not connected</span></p>
-           </footer>
-       </div>
-       
-       <script src="js/app.js"></script>
-   </body>
-   </html>
-   ```
-2. Create CSS styles in `app/frontend/css/styles.css`
-3. Setup basic JavaScript in `app/frontend/js/app.js` with API communication functions
-4. Implement responsive design for various screen sizes
-5. Create loading indicators and basic error handling UI
+1. Extend the recommendation engine to handle Comfort Mode:
+
+```python
+def apply_comfort_mode(self, media_list, comfort_mode_enabled):
+    if not comfort_mode_enabled:
+        return media_list
+    
+    # Get threshold from config
+    threshold = self.config['comfort_mode_threshold']
+    
+    # Boost scores for frequently watched content
+    for media in media_list:
+        if media['view_count'] >= threshold:
+            media['score'] += self.weights['frequent_rewatch_bonus']
+    
+    return media_list
+```
+
+2. Update the database schema to track view counts
+3. Implement logic to sync Plex view counts with local database
+4. Add UI toggle for Comfort Mode in the frontend
+5. Create a configuration option for the rewatch threshold (default: 3)
 
 # Test Strategy:
-Verify the frontend loads correctly in different browsers. Test responsive design on different screen sizes. Ensure basic structure and styling are consistent.
+1. Test that media with view counts >= threshold get proper score boost
+2. Verify Comfort Mode toggle correctly influences recommendations
+3. Test with various threshold values
+4. Verify database correctly tracks and updates view counts
+5. Test edge cases (all content watched multiple times, no rewatched content)
 
 # Subtasks:
-## 1. Create HTML Layout Structure [pending]
+## 1. Design Comfort Mode Algorithm [done]
 ### Dependencies: None
-### Description: Develop the basic HTML structure for the application including header, main content area, and footer.
+### Description: Create the algorithm that will identify and prioritize familiar content for users in comfort mode
 ### Details:
-Create index.html with semantic HTML5 elements. Include navigation menu, main content containers, and placeholder sections for dynamic content. Set up proper document structure with appropriate meta tags for SEO and viewport settings.
+Analyze user viewing patterns to identify what constitutes 'comfortable' content. Modify the recommendation scoring algorithm to increase weights for previously watched content, content from favorite creators, and genres the user frequently engages with. Document the algorithm design and expected behavior.
 
-## 2. Implement CSS Styling Framework [pending]
+## 2. Update Database Schema for Comfort Mode [done]
 ### Dependencies: 6.1
-### Description: Design and implement the core CSS styling for the application interface.
+### Description: Modify the database schema to support comfort mode preferences and content categorization
 ### Details:
-Create styles.css with global variables for colors, fonts, and spacing. Implement responsive grid system, component styling, and utility classes. Ensure consistent styling across all UI elements with proper CSS organization using BEM or similar methodology.
+Add a comfort_mode_enabled boolean field to the user preferences table. Create a comfort_content_categories table to track content types that qualify as 'comfort' content. Add relationships between user history and comfort categories. Create migration scripts for the schema changes.
 
-## 3. Develop Core JavaScript Functionality [pending]
-### Dependencies: 6.1
-### Description: Implement essential JavaScript functionality for user interactions and dynamic content.
+## 3. Implement View Count Synchronization [done]
+### Dependencies: 6.2
+### Description: Develop the system to track and synchronize view counts for determining comfort content
 ### Details:
-Create main.js with event listeners, DOM manipulation functions, and basic application logic. Set up module structure for code organization. Implement form validation, UI state management, and any required API interaction templates.
+Create a service that tracks how many times a user has viewed specific content. Implement a background job that periodically updates comfort content scores based on view counts. Add caching layer to optimize performance for frequently accessed comfort content metrics.
 
-## 4. Implement Responsive Design [pending]
-### Dependencies: 6.1, 6.2, 6.3
-### Description: Ensure the application is fully responsive across all device sizes.
+## 4. Integrate Comfort Mode with UI [done]
+### Dependencies: 6.2, 6.3
+### Description: Add UI controls and visual indicators for comfort mode in the application
 ### Details:
-Add media queries for different breakpoints (mobile, tablet, desktop). Test and optimize layout for various screen sizes. Implement responsive navigation patterns, flexible images, and appropriate font sizing. Ensure touch-friendly UI elements for mobile devices.
+Add a comfort mode toggle in user settings. Create visual indicators for content that qualifies as comfort content. Implement a dedicated 'Comfort Picks' section in the recommendation UI. Add tooltips explaining the comfort mode feature to users.
 
