@@ -2,11 +2,16 @@ from plexapi.myplex import MyPlexAccount
 from plexapi.server import PlexServer
 from app.backend.errors import AppError
 import logging
+import threading
+import time
 
 logger = logging.getLogger(__name__)
 
 class PlexClient:
     """Handles authentication and connection to Plex Media Server.
+
+    Singleton pattern ensures only one instance per process.
+    Includes logging and basic rate limiting for API calls.
 
     Troubleshooting:
     - Ensure your Plex token is valid and not expired.
@@ -14,12 +19,32 @@ class PlexClient:
     - Review logs for authentication or connection errors.
     - For persistent issues, try clearing stored credentials and re-authenticating.
     """
+    _instance = None
+    _lock = threading.Lock()
+    _last_api_call = 0
+    _rate_limit_seconds = 2  # Minimum seconds between API calls
+
+    def __new__(cls, *args, **kwargs):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def _rate_limit(self):
+        now = time.time()
+        elapsed = now - self._last_api_call
+        if elapsed < self._rate_limit_seconds:
+            logger.info(f"Rate limiting: sleeping for {self._rate_limit_seconds - elapsed:.2f} seconds")
+            time.sleep(self._rate_limit_seconds - elapsed)
+        self._last_api_call = time.time()
+
     def __init__(self):
         self.server = None
         self.account = None
 
     def connect_via_token(self, token, server_name=None, timeout=10):
         """Connect to Plex server using an auth token. Optionally specify server name."""
+        self._rate_limit()
         try:
             self.account = MyPlexAccount(token=token, timeout=timeout)
             if server_name:
@@ -41,6 +66,7 @@ class PlexClient:
 
     def validate_token(self, token, timeout=10):
         """Validate a Plex token by attempting to fetch account info."""
+        self._rate_limit()
         try:
             account = MyPlexAccount(token=token, timeout=timeout)
             return True
@@ -55,6 +81,7 @@ class PlexClient:
 
     def connect_direct(self, baseurl, token, timeout=10):
         """Connect directly to a Plex server with URL and token."""
+        self._rate_limit()
         try:
             self.server = PlexServer(baseurl, token, timeout=timeout)
             return self.server
