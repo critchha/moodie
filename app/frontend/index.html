@@ -14,7 +14,34 @@
         
         <main>
             <div id="mood-form" class="section">
-                <!-- Mood questionnaire will go here -->
+                <form id="mood-questionnaire">
+                    <div class="form-group">
+                        <h3>What's your vibe?</h3>
+                        <div class="mood-options">
+                            <label><input type="radio" name="mood" value="funny" required> Funny</label>
+                            <label><input type="radio" name="mood" value="action" required> Action</label>
+                            <label><input type="radio" name="mood" value="dramatic" required> Dramatic</label>
+                            <label><input type="radio" name="mood" value="relaxing" required> Relaxing</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <h3>Solo or group watching?</h3>
+                        <div class="group-options">
+                            <label><input type="radio" name="group" value="solo" required> Solo</label>
+                            <label><input type="radio" name="group" value="couple" required> Couple</label>
+                            <label><input type="radio" name="group" value="group" required> Group</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <h3>Binge or short session?</h3>
+                        <div class="session-options">
+                            <label><input type="radio" name="session" value="short" required> Short (&lt; 1 hour)</label>
+                            <label><input type="radio" name="session" value="medium" required> Medium (1-2 hours)</label>
+                            <label><input type="radio" name="session" value="binge" required> Binge (2+ hours)</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn primary-btn">Get Recommendation</button>
+                </form>
             </div>
             
             <div id="recommendation" class="section hidden">
