@@ -121,4 +121,46 @@ class PlexClient:
 
     def on_status_change(self, callback):
         """Stub for registering a callback for connection status changes."""
-        raise NotImplementedError("Event system for status changes not implemented.") 
+        raise NotImplementedError("Event system for status changes not implemented.")
+
+    def get_all_movies(self, section_name='Movies'):
+        """Fetch all movies from the specified Plex library section, handling pagination."""
+        if not self.server:
+            logger.error("Not connected to Plex server.")
+            raise AppError("Not connected to Plex server.", status_code=400)
+        try:
+            section = self.server.library.section(section_name)
+            # PlexAPI handles pagination internally for .all(), but we can chunk if needed
+            movies = section.all()
+            logger.info(f"Fetched {len(movies)} movies from section '{section_name}'.")
+            return [self.extract_movie_metadata(movie) for movie in movies]
+        except Exception as e:
+            logger.error(f"Failed to fetch movies: {e}")
+            raise AppError(f"Failed to fetch movies: {e}", status_code=500)
+
+    def extract_movie_metadata(self, movie):
+        """Extract and normalize metadata from a Plex movie item for database storage."""
+        try:
+            genres = [genre.tag for genre in getattr(movie, 'genres', [])]
+            directors = [d.tag for d in getattr(movie, 'directors', [])]
+            writers = [w.tag for w in getattr(movie, 'writers', [])]
+            cast = [a.tag for a in getattr(movie, 'actors', [])]
+            poster = movie.posterUrl if hasattr(movie, 'posterUrl') else None
+            backdrop = movie.art if hasattr(movie, 'art') else None
+            return {
+                'plex_id': movie.ratingKey,
+                'title': movie.title,
+                'type': 'movie',
+                'year': getattr(movie, 'year', None),
+                'genres': ','.join(genres),
+                'summary': getattr(movie, 'summary', None),
+                'duration': getattr(movie, 'duration', None) // 60000 if getattr(movie, 'duration', None) else None,
+                'directors': ','.join(directors),
+                'writers': ','.join(writers),
+                'cast': ','.join(cast),
+                'poster': poster,
+                'backdrop': backdrop,
+            }
+        except Exception as e:
+            logger.warning(f"Failed to extract metadata for movie: {e}")
+            return {} 
