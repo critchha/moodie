@@ -1,9 +1,19 @@
 from plexapi.myplex import MyPlexAccount
 from plexapi.server import PlexServer
 from app.backend.errors import AppError
+import logging
+
+logger = logging.getLogger(__name__)
 
 class PlexClient:
-    """Handles authentication and connection to Plex Media Server."""
+    """Handles authentication and connection to Plex Media Server.
+
+    Troubleshooting:
+    - Ensure your Plex token is valid and not expired.
+    - Check network connectivity to your Plex server.
+    - Review logs for authentication or connection errors.
+    - For persistent issues, try clearing stored credentials and re-authenticating.
+    """
     def __init__(self):
         self.server = None
         self.account = None
@@ -15,24 +25,27 @@ class PlexClient:
             if server_name:
                 resource = self.account.resource(server_name)
                 if not resource:
+                    logger.error(f"Server '{server_name}' not found in Plex account.")
                     raise AppError(f"Server '{server_name}' not found in Plex account.", status_code=404)
                 self.server = resource.connect()
             else:
                 resources = self.account.resources()
                 if not resources:
+                    logger.error("No Plex servers found for this account.")
                     raise AppError("No Plex servers found for this account.", status_code=404)
                 self.server = resources[0].connect()
             return self.server
         except Exception as e:
+            logger.error(f"Failed to connect to Plex: {e}")
             raise AppError(f"Failed to connect to Plex: {e}", status_code=401)
 
     def validate_token(self, token, timeout=10):
         """Validate a Plex token by attempting to fetch account info."""
         try:
             account = MyPlexAccount(token=token, timeout=timeout)
-            # If this succeeds, token is valid
             return True
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Token validation failed: {e}")
             return False
 
     # Stub for future token refresh logic
@@ -46,6 +59,7 @@ class PlexClient:
             self.server = PlexServer(baseurl, token, timeout=timeout)
             return self.server
         except Exception as e:
+            logger.error(f"Failed to connect directly to Plex server: {e}")
             raise AppError(f"Failed to connect directly to Plex server: {e}", status_code=401)
 
     def discover_servers(self):
