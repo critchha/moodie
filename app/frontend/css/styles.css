@@ -1,0 +1,87 @@
+:root {
+  --primary-color: #4f46e5;
+  --secondary-color: #f3f4f6;
+  --accent-color: #f59e42;
+  --text-color: #22223b;
+  --background-color: #fff;
+  --border-radius: 8px;
+  --font-family: 'Segoe UI', Arial, sans-serif;
+  --max-width: 600px;
+}
+
+body {
+  background: var(--secondary-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 2rem auto;
+  background: var(--background-color);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 2rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+h1 {
+  color: var(--primary-color);
+  font-size: 2rem;
+  margin: 0;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.hidden {
+  display: none;
+}
+
+footer {
+  text-align: center;
+  color: #888;
+  font-size: 0.95rem;
+  margin-top: 2rem;
+}
+
+/* Responsive grid */
+@media (max-width: 700px) {
+  .container {
+    padding: 1rem;
+  }
+  h1 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Utility classes */
+.btn {
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn:hover {
+  background: var(--accent-color);
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  border: 1px solid #ddd;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+} 
