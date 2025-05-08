@@ -1,0 +1,80 @@
+# Task ID: 5
+# Title: Implement Plex Media Metadata Import
+# Status: pending
+# Dependencies: 3, 4
+# Priority: high
+# Description: Create functionality to pull and store metadata from the Plex Media Server for all movies and TV shows.
+# Details:
+1. Extend the PlexClient class to fetch media metadata:
+   ```python
+   def get_all_movies(self):
+       """Fetch all movies from Plex server"""
+       if not self.server:
+           raise Exception("Not connected to Plex server")
+       return self.server.library.section('Movies').all()
+   
+   def get_all_shows(self):
+       """Fetch all TV shows from Plex server"""
+       if not self.server:
+           raise Exception("Not connected to Plex server")
+       return self.server.library.section('TV Shows').all()
+   
+   def extract_metadata(self, media_item):
+       """Extract relevant metadata from a Plex media item"""
+       genres = [genre.tag for genre in media_item.genres] if hasattr(media_item, 'genres') else []
+       
+       return {
+           'plex_id': media_item.ratingKey,
+           'title': media_item.title,
+           'type': 'movie' if media_item.type == 'movie' else 'show',
+           'year': media_item.year,
+           'genres': ','.join(genres),
+           'summary': media_item.summary,
+           'duration': media_item.duration // 60000 if hasattr(media_item, 'duration') else None,
+       }
+   ```
+2. Create function to sync Plex metadata with local database
+3. Implement incremental updates to only fetch new or changed content
+4. Add API endpoint to trigger metadata refresh
+5. Create background task for periodic metadata updates
+
+# Test Strategy:
+Test fetching metadata from Plex server with various library sizes. Verify all metadata fields are correctly extracted and stored in the database. Test incremental updates with new content added to Plex.
+
+# Subtasks:
+## 1. Implement Plex API Connection and Authentication [pending]
+### Dependencies: None
+### Description: Set up secure connection to the Plex API with proper authentication handling and session management
+### Details:
+Create a service that handles Plex API authentication, manages tokens, handles connection errors, and provides a reusable client for other components. Include rate limiting protection and logging for API interactions.
+
+## 2. Develop Movie Metadata Fetching Module [pending]
+### Dependencies: 5.1
+### Description: Create a module to fetch and parse movie metadata from Plex libraries
+### Details:
+Implement pagination for large libraries, extract all relevant movie metadata (title, year, director, cast, genres, etc.), handle poster/backdrop images, and normalize the data structure for database storage. Include error handling for missing or malformed data.
+
+## 3. Develop TV Show Metadata Fetching Module [pending]
+### Dependencies: 5.1
+### Description: Create a module to fetch and parse TV show metadata including series, seasons, and episodes
+### Details:
+Handle the hierarchical nature of TV content (series → seasons → episodes), extract metadata at each level, manage relationships between entities, and normalize data for storage. Include special handling for multi-episode files and split episodes.
+
+## 4. Create Metadata Extraction and Normalization System [pending]
+### Dependencies: 5.2, 5.3
+### Description: Build a system to extract, transform, and normalize metadata from different media types
+### Details:
+Implement a unified metadata model that works for both movies and TV shows, handle different metadata formats, extract and normalize external IDs (IMDB, TMDB, TVDB), and create a consistent tagging system across media types.
+
+## 5. Implement Database Synchronization Logic [pending]
+### Dependencies: 5.4
+### Description: Develop logic to efficiently synchronize Plex metadata with the application database
+### Details:
+Create efficient upsert operations, handle deletions/removals from Plex, maintain relationship integrity, implement transaction management for data consistency, and add detailed logging for sync operations.
+
+## 6. Build Incremental Update and Background Processing System [pending]
+### Dependencies: 5.5
+### Description: Create a system for detecting and processing incremental updates in the background
+### Details:
+Implement a change detection mechanism using Plex's updated_at timestamps, create a job queue for processing updates, develop a scheduler for periodic full syncs, add monitoring and alerting for failed jobs, and implement user notifications for completed imports.
+

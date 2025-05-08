@@ -1,0 +1,74 @@
+# Task ID: 7
+# Title: Implement Mood Questionnaire UI
+# Status: pending
+# Dependencies: 6
+# Priority: medium
+# Description: Create the user interface for collecting mood and context inputs from the user.
+# Details:
+1. Create HTML form for mood inputs in the mood-form section:
+   ```html
+   <form id="mood-questionnaire">
+       <div class="form-group">
+           <h3>What's your vibe?</h3>
+           <div class="mood-options">
+               <label><input type="radio" name="mood" value="funny" required> Funny</label>
+               <label><input type="radio" name="mood" value="action" required> Action</label>
+               <label><input type="radio" name="mood" value="dramatic" required> Dramatic</label>
+               <label><input type="radio" name="mood" value="relaxing" required> Relaxing</label>
+           </div>
+       </div>
+       
+       <div class="form-group">
+           <h3>Solo or group watching?</h3>
+           <div class="group-options">
+               <label><input type="radio" name="group" value="solo" required> Solo</label>
+               <label><input type="radio" name="group" value="couple" required> Couple</label>
+               <label><input type="radio" name="group" value="group" required> Group</label>
+           </div>
+       </div>
+       
+       <div class="form-group">
+           <h3>Binge or short session?</h3>
+           <div class="session-options">
+               <label><input type="radio" name="session" value="short" required> Short (< 1 hour)</label>
+               <label><input type="radio" name="session" value="medium" required> Medium (1-2 hours)</label>
+               <label><input type="radio" name="session" value="binge" required> Binge (2+ hours)</label>
+           </div>
+       </div>
+       
+       <button type="submit" class="btn primary-btn">Get Recommendation</button>
+   </form>
+   ```
+2. Add JavaScript to handle form submission and API call
+3. Implement form validation
+4. Add visual feedback for selection (highlighting, animations)
+5. Store form values in session storage for persistence
+
+# Test Strategy:
+Test form submission with various combinations of inputs. Verify validation works correctly. Test that the form data is correctly sent to the API endpoint.
+
+# Subtasks:
+## 1. Create Mood Questionnaire Form Layout [pending]
+### Dependencies: None
+### Description: Design and implement the basic form structure with all required input fields for the mood questionnaire
+### Details:
+Create a responsive form layout with appropriate input types (radio buttons, sliders, text areas) for mood assessment questions. Include section headings, question text, and a submission button. Ensure the layout follows accessibility guidelines and is mobile-friendly.
+
+## 2. Implement Form Validation Logic [pending]
+### Dependencies: 7.1
+### Description: Add client-side validation to ensure all required fields are completed correctly before submission
+### Details:
+Write validation functions to check that all required fields have valid inputs. Implement real-time validation where appropriate. Create validation rules for different question types (e.g., required fields, text length limits, valid numerical ranges for mood ratings).
+
+## 3. Add Visual Feedback Components [pending]
+### Dependencies: 7.1, 7.2
+### Description: Implement visual cues and feedback elements to enhance user experience during form completion
+### Details:
+Add visual indicators for form validation status (error/success states). Implement progress indicators showing completion status. Create interactive elements like tooltips for additional guidance. Ensure feedback is accessible and clear for all users.
+
+## 4. Develop Data Submission Handling [pending]
+### Dependencies: 7.2, 7.3
+### Description: Create the functionality to collect, format and submit questionnaire data to the backend
+### Details:
+Implement form submission handler to collect all input values. Format data according to API requirements. Add loading states during submission. Implement success and error handling for API responses. Include retry logic for failed submissions and appropriate user notifications.
+

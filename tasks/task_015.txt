@@ -1,0 +1,92 @@
+# Task ID: 15
+# Title: Implement Manual Retraining UI and Polish
+# Status: pending
+# Dependencies: 9, 12, 13
+# Priority: low
+# Description: Add UI for manual model retraining and polish the overall user experience.
+# Details:
+1. Add admin section to frontend:
+   ```html
+   <div id="admin-panel" class="section">
+       <h2>Admin Panel</h2>
+       <div class="stats-container">
+           <div class="stat-box">
+               <h3>Total Recommendations</h3>
+               <p id="total-recommendations">0</p>
+           </div>
+           <div class="stat-box">
+               <h3>Feedback Collected</h3>
+               <p id="total-feedback">0</p>
+           </div>
+           <div class="stat-box">
+               <h3>Model Last Trained</h3>
+               <p id="last-trained">Never</p>
+           </div>
+       </div>
+       <button id="retrain-btn" class="btn primary-btn">Retrain Model</button>
+       <div id="training-status" class="hidden"></div>
+   </div>
+   ```
+2. Add JavaScript to handle model retraining:
+   ```javascript
+   document.getElementById('retrain-btn').addEventListener('click', function() {
+       const trainingStatus = document.getElementById('training-status');
+       trainingStatus.textContent = 'Training in progress...';
+       trainingStatus.classList.remove('hidden');
+       
+       fetch('/api/train', {
+           method: 'POST'
+       })
+       .then(response => response.json())
+       .then(data => {
+           if (data.status === 'success') {
+               trainingStatus.textContent = 'Model trained successfully!';
+               document.getElementById('last-trained').textContent = new Date().toLocaleString();
+           } else {
+               trainingStatus.textContent = 'Training failed: ' + data.error;
+           }
+       })
+       .catch(error => {
+           trainingStatus.textContent = 'Error: ' + error;
+       });
+   });
+   ```
+3. Add API endpoint to get application statistics
+4. Improve UI transitions and animations
+5. Add error handling and user feedback throughout the application
+6. Implement responsive design improvements
+
+# Test Strategy:
+Test manual retraining functionality. Verify statistics are displayed correctly. Test UI on different devices and screen sizes to ensure responsive design works correctly.
+
+# Subtasks:
+## 1. Create Admin Panel Framework [pending]
+### Dependencies: None
+### Description: Design and implement the basic structure of the admin panel for manual retraining
+### Details:
+Create the layout, navigation, and authentication for the admin panel. Include sidebar navigation, header with user info, and main content area. Ensure proper access control so only authorized users can access the retraining functionality.
+
+## 2. Implement Model Statistics Display [pending]
+### Dependencies: 15.1
+### Description: Create visualizations and tables to display current model performance metrics
+### Details:
+Design and implement charts, graphs and tables showing key model metrics like accuracy, F1 score, precision, recall, and confusion matrix. Include historical performance data and trend analysis. Add filtering options by date ranges.
+
+## 3. Develop Manual Retraining Controls [pending]
+### Dependencies: 15.1, 15.2
+### Description: Create UI components for initiating and monitoring model retraining
+### Details:
+Implement form controls for selecting training parameters, dataset versions, and model configurations. Add progress indicators, real-time logs, and status updates during training. Include cancel/pause functionality and error handling with clear user feedback.
+
+## 4. Polish UI and Improve User Experience [pending]
+### Dependencies: 15.3
+### Description: Enhance the visual design and usability of the retraining interface
+### Details:
+Apply consistent styling, improve component spacing and alignment, add helpful tooltips and documentation links. Implement confirmation dialogs for critical actions, keyboard shortcuts, and accessibility improvements. Ensure loading states and transitions are smooth.
+
+## 5. Implement Responsive Design [pending]
+### Dependencies: 15.4
+### Description: Ensure the retraining UI works well across different screen sizes and devices
+### Details:
+Test and optimize layout for desktop, tablet, and mobile views. Implement responsive breakpoints, collapsible sections, and touch-friendly controls. Ensure charts and statistics visualizations adapt appropriately to smaller screens without losing critical information.
+

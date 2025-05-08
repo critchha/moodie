@@ -1,0 +1,75 @@
+# Task ID: 3
+# Title: Create SQLite Database Schema
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: Design and implement the SQLite database schema for storing media metadata, user mood inputs, recommendations, and feedback.
+# Details:
+1. Create database module in `app/backend/database.py`
+2. Define SQLAlchemy models for:
+   ```python
+   # Media table - stores Plex media metadata
+   class Media(Base):
+       __tablename__ = 'media'
+       id = Column(Integer, primary_key=True)
+       plex_id = Column(String, unique=True, nullable=False)
+       title = Column(String, nullable=False)
+       type = Column(String)  # movie or show
+       year = Column(Integer)
+       genres = Column(String)  # comma-separated
+       summary = Column(Text)
+       duration = Column(Integer)  # in minutes
+       last_updated = Column(DateTime)
+   
+   # Recommendation table - stores recommendation history
+   class Recommendation(Base):
+       __tablename__ = 'recommendations'
+       id = Column(Integer, primary_key=True)
+       media_id = Column(Integer, ForeignKey('media.id'))
+       timestamp = Column(DateTime, default=datetime.utcnow)
+       mood = Column(String)  # JSON string of mood inputs
+       group_size = Column(String)  # solo, couple, group
+       session_length = Column(String)  # short, medium, binge
+       score = Column(Float)  # model prediction score
+       
+   # Feedback table - stores user feedback
+   class Feedback(Base):
+       __tablename__ = 'feedback'
+       id = Column(Integer, primary_key=True)
+       recommendation_id = Column(Integer, ForeignKey('recommendations.id'))
+       watched_completion = Column(Boolean)
+       would_watch_again = Column(Boolean)
+       rating = Column(Integer)  # 1-5 stars
+       timestamp = Column(DateTime, default=datetime.utcnow)
+   ```
+3. Implement database initialization function
+4. Create utility functions for common database operations
+
+# Test Strategy:
+Initialize the database and verify tables are created correctly. Test CRUD operations on each table. Verify relationships between tables work as expected.
+
+# Subtasks:
+## 1. Define Data Models [pending]
+### Dependencies: None
+### Description: Create the data model classes that represent the database tables
+### Details:
+Define Python classes for each entity in the system using SQLAlchemy's declarative base. Include appropriate columns with correct data types, primary keys, and constraints. Document each model class and its attributes clearly.
+
+## 2. Implement Database Initialization [pending]
+### Dependencies: 3.1
+### Description: Create functions to initialize the SQLite database and establish connection
+### Details:
+Write code to create the database engine, establish connections, and create tables based on the defined models. Include error handling for connection issues and implement a function to reset the database if needed.
+
+## 3. Configure Table Relationships [pending]
+### Dependencies: 3.1, 3.2
+### Description: Set up foreign key relationships between database tables
+### Details:
+Define relationships between tables using SQLAlchemy's relationship() function. Configure one-to-many, many-to-many, and one-to-one relationships as needed. Ensure proper cascade behavior for updates and deletes.
+
+## 4. Create Database Utility Functions [pending]
+### Dependencies: 3.2, 3.3
+### Description: Implement helper functions for common database operations
+### Details:
+Develop utility functions for common database operations such as CRUD operations, transaction management, and query optimization. Include functions for data migration, backup, and integrity checks.
+

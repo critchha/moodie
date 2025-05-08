@@ -1,0 +1,84 @@
+# Task ID: 9
+# Title: Implement Feedback Collection UI
+# Status: pending
+# Dependencies: 8
+# Priority: medium
+# Description: Create the user interface for collecting user feedback on watched recommendations.
+# Details:
+1. Create HTML structure for feedback form:
+   ```html
+   <div class="feedback-container">
+       <h2>How was "<span id="feedback-title"></span>"?</h2>
+       
+       <form id="feedback-form">
+           <input type="hidden" id="recommendation-id" name="recommendation_id">
+           
+           <div class="form-group">
+               <h3>Did you watch it to completion?</h3>
+               <div class="completion-options">
+                   <label><input type="radio" name="watched_completion" value="true" required> Yes</label>
+                   <label><input type="radio" name="watched_completion" value="false" required> No</label>
+               </div>
+           </div>
+           
+           <div class="form-group">
+               <h3>Would you watch it again?</h3>
+               <div class="rewatch-options">
+                   <label><input type="radio" name="would_watch_again" value="true" required> Yes</label>
+                   <label><input type="radio" name="would_watch_again" value="false" required> No</label>
+               </div>
+           </div>
+           
+           <div class="form-group">
+               <h3>Rating:</h3>
+               <div class="star-rating">
+                   <input type="radio" id="star5" name="rating" value="5" required>
+                   <label for="star5">★</label>
+                   <input type="radio" id="star4" name="rating" value="4">
+                   <label for="star4">★</label>
+                   <input type="radio" id="star3" name="rating" value="3">
+                   <label for="star3">★</label>
+                   <input type="radio" id="star2" name="rating" value="2">
+                   <label for="star2">★</label>
+                   <input type="radio" id="star1" name="rating" value="1">
+                   <label for="star1">★</label>
+               </div>
+           </div>
+           
+           <button type="submit" class="btn primary-btn">Submit Feedback</button>
+       </form>
+   </div>
+   ```
+2. Add JavaScript to handle form submission and API call
+3. Implement star rating functionality with visual feedback
+4. Add transition animations between recommendation and feedback
+5. Show confirmation message after feedback submission
+
+# Test Strategy:
+Test feedback form with various input combinations. Verify the star rating system works correctly. Test that feedback data is correctly sent to the API endpoint.
+
+# Subtasks:
+## 1. Create Feedback Form Layout [pending]
+### Dependencies: None
+### Description: Design and implement the basic structure of the feedback collection form
+### Details:
+Create a responsive form layout with appropriate sections for user information, recommendation feedback, star rating placeholder, and comments. Include proper styling and ensure the form matches the overall application design.
+
+## 2. Implement Star Rating Component [pending]
+### Dependencies: 9.1
+### Description: Develop an interactive star rating system for users to rate recommendations
+### Details:
+Create a reusable star rating component that allows users to select 1-5 stars. Include hover effects, selected state styling, and ensure it's accessible. The component should provide the selected rating value to the parent form.
+
+## 3. Add Form Validation [pending]
+### Dependencies: 9.1, 9.2
+### Description: Implement client-side validation for all form fields
+### Details:
+Add validation rules for required fields, proper formatting of inputs, and appropriate error messages. Ensure the star rating is required and validate that users have selected a rating before submission. Display validation errors in a user-friendly manner.
+
+## 4. Handle Form Submission [pending]
+### Dependencies: 9.3
+### Description: Implement the submission logic and success/error states
+### Details:
+Create the submission handler that collects all form data, including the star rating, and prepares it for API submission. Implement loading states during submission, success messages upon completion, and appropriate error handling. Include the ability to reference which recommendation the feedback relates to.
+

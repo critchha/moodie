@@ -1,0 +1,877 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Project Scaffolding and Repository Setup",
+      "description": "Create the initial project structure, repository, and development environment for the Mood-Based Plex Recommender application.",
+      "details": "1. Initialize Git repository\n2. Create directory structure:\n   - `/app` - Main application code\n   - `/app/frontend` - Frontend assets\n   - `/app/backend` - Backend Python code\n   - `/app/models` - ML model storage\n   - `/app/data` - Database and data storage\n3. Setup basic README.md with project overview\n4. Create requirements.txt with initial dependencies:\n   ```\n   flask==2.0.1\n   plexapi==4.7.2\n   scikit-learn==1.0.1\n   pandas==1.3.3\n   joblib==1.1.0\n   sqlalchemy==1.4.26\n   ```\n5. Setup .gitignore for Python, environment files, and database files",
+      "testStrategy": "Verify repository structure is correct and all initial files are created. Ensure dependencies can be installed in a clean environment.",
+      "priority": "high",
+      "dependencies": [],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Initialize Git Repository",
+          "description": "Create a new Git repository and set up initial configuration",
+          "dependencies": [],
+          "details": "Initialize a new Git repository with 'git init', create a .gitignore file with appropriate entries for the project, and make an initial commit with basic README.md file. Configure remote repository on GitHub/GitLab if needed.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Create Directory Structure",
+          "description": "Establish the project's folder hierarchy and organization",
+          "dependencies": [
+            1
+          ],
+          "details": "Create main directories including src/, tests/, docs/, and any other folders needed for the project architecture. Add placeholder files where necessary to maintain structure in version control.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Set Up Documentation Framework",
+          "description": "Initialize documentation files and templates",
+          "dependencies": [
+            2
+          ],
+          "details": "Create comprehensive README.md with project overview, installation instructions, and usage examples. Add CONTRIBUTING.md for contribution guidelines, LICENSE file, and any other documentation needed for the project. Set up documentation generation tools if applicable.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Setup Flask Backend Framework",
+      "description": "Implement the basic Flask application structure with routing and configuration for the backend API.",
+      "details": "1. Create Flask application entry point in `app/backend/app.py`:\n   ```python\n   from flask import Flask, request, jsonify\n   \n   app = Flask(__name__, static_folder='../frontend', static_url_path='/')\n   \n   @app.route('/')\n   def index():\n       return app.send_static_file('index.html')\n   \n   # Placeholder API endpoints\n   @app.route('/api/recommend', methods=['GET'])\n   def recommend():\n       return jsonify({'status': 'not implemented'})\n   \n   @app.route('/api/feedback', methods=['POST'])\n   def feedback():\n       return jsonify({'status': 'not implemented'})\n   \n   @app.route('/api/train', methods=['POST'])\n   def train_model():\n       return jsonify({'status': 'not implemented'})\n   \n   if __name__ == '__main__':\n       app.run(host='0.0.0.0', port=5000, debug=True)\n   ```\n2. Create configuration module in `app/backend/config.py` for environment variables and settings\n3. Setup basic error handling and logging",
+      "testStrategy": "Run the Flask application and verify it starts without errors. Test each placeholder endpoint returns the expected response. Verify logging is working correctly.",
+      "priority": "high",
+      "dependencies": [
+        1
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Initialize Flask Application",
+          "description": "Create the basic Flask application instance and configure the core settings",
+          "dependencies": [],
+          "details": "Create a new Python file (app.py) to initialize the Flask application. Import the Flask class, create an instance, and set the basic configuration parameters like secret key and debug mode. Implement the application factory pattern if needed for testing and scalability.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Configure Routes and Blueprints",
+          "description": "Set up the API endpoints and organize routes using Flask blueprints",
+          "dependencies": [
+            1
+          ],
+          "details": "Create blueprint modules for different functional areas of the application. Define routes with appropriate HTTP methods (GET, POST, PUT, DELETE) and implement request handling functions. Register all blueprints with the main Flask application instance.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Implement Error Handling",
+          "description": "Create global error handlers and custom exception classes",
+          "dependencies": [
+            1
+          ],
+          "details": "Define error handler functions for common HTTP errors (404, 500, etc.) and register them with the Flask application. Create custom exception classes for application-specific errors. Implement a consistent error response format using JSON for API responses.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Set Up Environment Configuration",
+          "description": "Create configuration classes for different environments (development, testing, production)",
+          "dependencies": [
+            1
+          ],
+          "details": "Create a config.py file with base configuration class and environment-specific subclasses. Implement environment variable loading using python-dotenv. Set up configuration for database connections, logging, and other environment-specific settings. Create a .env file template for local development.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Create SQLite Database Schema",
+      "description": "Design and implement the SQLite database schema for storing media metadata, user mood inputs, recommendations, and feedback.",
+      "details": "1. Create database module in `app/backend/database.py`\n2. Define SQLAlchemy models for:\n   ```python\n   # Media table - stores Plex media metadata\n   class Media(Base):\n       __tablename__ = 'media'\n       id = Column(Integer, primary_key=True)\n       plex_id = Column(String, unique=True, nullable=False)\n       title = Column(String, nullable=False)\n       type = Column(String)  # movie or show\n       year = Column(Integer)\n       genres = Column(String)  # comma-separated\n       summary = Column(Text)\n       duration = Column(Integer)  # in minutes\n       last_updated = Column(DateTime)\n   \n   # Recommendation table - stores recommendation history\n   class Recommendation(Base):\n       __tablename__ = 'recommendations'\n       id = Column(Integer, primary_key=True)\n       media_id = Column(Integer, ForeignKey('media.id'))\n       timestamp = Column(DateTime, default=datetime.utcnow)\n       mood = Column(String)  # JSON string of mood inputs\n       group_size = Column(String)  # solo, couple, group\n       session_length = Column(String)  # short, medium, binge\n       score = Column(Float)  # model prediction score\n       \n   # Feedback table - stores user feedback\n   class Feedback(Base):\n       __tablename__ = 'feedback'\n       id = Column(Integer, primary_key=True)\n       recommendation_id = Column(Integer, ForeignKey('recommendations.id'))\n       watched_completion = Column(Boolean)\n       would_watch_again = Column(Boolean)\n       rating = Column(Integer)  # 1-5 stars\n       timestamp = Column(DateTime, default=datetime.utcnow)\n   ```\n3. Implement database initialization function\n4. Create utility functions for common database operations",
+      "testStrategy": "Initialize the database and verify tables are created correctly. Test CRUD operations on each table. Verify relationships between tables work as expected.",
+      "priority": "high",
+      "dependencies": [
+        2
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Define Data Models",
+          "description": "Create the data model classes that represent the database tables",
+          "dependencies": [],
+          "details": "Define Python classes for each entity in the system using SQLAlchemy's declarative base. Include appropriate columns with correct data types, primary keys, and constraints. Document each model class and its attributes clearly.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Implement Database Initialization",
+          "description": "Create functions to initialize the SQLite database and establish connection",
+          "dependencies": [
+            1
+          ],
+          "details": "Write code to create the database engine, establish connections, and create tables based on the defined models. Include error handling for connection issues and implement a function to reset the database if needed.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Configure Table Relationships",
+          "description": "Set up foreign key relationships between database tables",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Define relationships between tables using SQLAlchemy's relationship() function. Configure one-to-many, many-to-many, and one-to-one relationships as needed. Ensure proper cascade behavior for updates and deletes.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Create Database Utility Functions",
+          "description": "Implement helper functions for common database operations",
+          "dependencies": [
+            2,
+            3
+          ],
+          "details": "Develop utility functions for common database operations such as CRUD operations, transaction management, and query optimization. Include functions for data migration, backup, and integrity checks.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Implement Plex Authentication and Connection",
+      "description": "Create functionality to authenticate with and connect to a user's Plex Media Server.",
+      "details": "1. Create Plex client module in `app/backend/plex_client.py`\n2. Implement authentication using PlexAPI:\n   ```python\n   from plexapi.myplex import MyPlexAccount\n   from plexapi.server import PlexServer\n   \n   class PlexClient:\n       def __init__(self):\n           self.server = None\n       \n       def connect_via_token(self, token, server_name=None):\n           \"\"\"Connect to Plex server using an auth token\"\"\"\n           account = MyPlexAccount(token=token)\n           if server_name:\n               self.server = account.resource(server_name).connect()\n           else:\n               # Connect to first server if name not specified\n               self.server = account.resources()[0].connect()\n           return self.server\n       \n       def connect_direct(self, baseurl, token):\n           \"\"\"Connect directly to a Plex server with URL and token\"\"\"\n           self.server = PlexServer(baseurl, token)\n           return self.server\n   ```\n3. Create API endpoint for Plex authentication\n4. Store connection details securely (consider environment variables or config file)\n5. Implement connection status check endpoint",
+      "testStrategy": "Test authentication with valid and invalid credentials. Verify connection to Plex server is established. Test connection persistence and error handling for network issues.",
+      "priority": "high",
+      "dependencies": [
+        2
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement Token-Based Authentication",
+          "description": "Develop the token-based authentication flow for Plex API integration",
+          "dependencies": [],
+          "details": "Research Plex API documentation for token authentication requirements. Implement the OAuth flow or token request process. Create functions to obtain, validate and refresh authentication tokens. Include proper timeout handling and token expiration checks.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Create Direct Connection Methods",
+          "description": "Implement direct connection methods to Plex servers using various authentication approaches",
+          "dependencies": [
+            1
+          ],
+          "details": "Develop functions for both local network and remote connections. Implement automatic server discovery on local networks. Create connection prioritization logic (local before remote). Support manual server specification with credentials.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Develop Secure Credential Storage",
+          "description": "Create a secure system for storing and retrieving Plex authentication credentials",
+          "dependencies": [
+            1
+          ],
+          "details": "Research platform-specific secure storage options. Implement encryption for stored credentials. Create an abstraction layer for credential access. Add functionality to securely clear credentials when needed. Include migration path for existing stored credentials.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Implement Connection Status Monitoring",
+          "description": "Develop a system to monitor and report on Plex server connection status",
+          "dependencies": [
+            2
+          ],
+          "details": "Create a connection health check mechanism. Implement automatic reconnection logic. Develop event system for connection status changes. Add configurable polling intervals. Include timeout and retry logic for unstable connections.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Develop Comprehensive Error Handling",
+          "description": "Create robust error handling for all authentication and connection scenarios",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "details": "Identify and categorize all potential error types. Create user-friendly error messages. Implement logging for authentication failures. Develop recovery strategies for common errors. Create documentation for troubleshooting authentication issues.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Implement Plex Media Metadata Import",
+      "description": "Create functionality to pull and store metadata from the Plex Media Server for all movies and TV shows.",
+      "details": "1. Extend the PlexClient class to fetch media metadata:\n   ```python\n   def get_all_movies(self):\n       \"\"\"Fetch all movies from Plex server\"\"\"\n       if not self.server:\n           raise Exception(\"Not connected to Plex server\")\n       return self.server.library.section('Movies').all()\n   \n   def get_all_shows(self):\n       \"\"\"Fetch all TV shows from Plex server\"\"\"\n       if not self.server:\n           raise Exception(\"Not connected to Plex server\")\n       return self.server.library.section('TV Shows').all()\n   \n   def extract_metadata(self, media_item):\n       \"\"\"Extract relevant metadata from a Plex media item\"\"\"\n       genres = [genre.tag for genre in media_item.genres] if hasattr(media_item, 'genres') else []\n       \n       return {\n           'plex_id': media_item.ratingKey,\n           'title': media_item.title,\n           'type': 'movie' if media_item.type == 'movie' else 'show',\n           'year': media_item.year,\n           'genres': ','.join(genres),\n           'summary': media_item.summary,\n           'duration': media_item.duration // 60000 if hasattr(media_item, 'duration') else None,\n       }\n   ```\n2. Create function to sync Plex metadata with local database\n3. Implement incremental updates to only fetch new or changed content\n4. Add API endpoint to trigger metadata refresh\n5. Create background task for periodic metadata updates",
+      "testStrategy": "Test fetching metadata from Plex server with various library sizes. Verify all metadata fields are correctly extracted and stored in the database. Test incremental updates with new content added to Plex.",
+      "priority": "high",
+      "dependencies": [
+        3,
+        4
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement Plex API Connection and Authentication",
+          "description": "Set up secure connection to the Plex API with proper authentication handling and session management",
+          "dependencies": [],
+          "details": "Create a service that handles Plex API authentication, manages tokens, handles connection errors, and provides a reusable client for other components. Include rate limiting protection and logging for API interactions.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Develop Movie Metadata Fetching Module",
+          "description": "Create a module to fetch and parse movie metadata from Plex libraries",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement pagination for large libraries, extract all relevant movie metadata (title, year, director, cast, genres, etc.), handle poster/backdrop images, and normalize the data structure for database storage. Include error handling for missing or malformed data.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Develop TV Show Metadata Fetching Module",
+          "description": "Create a module to fetch and parse TV show metadata including series, seasons, and episodes",
+          "dependencies": [
+            1
+          ],
+          "details": "Handle the hierarchical nature of TV content (series → seasons → episodes), extract metadata at each level, manage relationships between entities, and normalize data for storage. Include special handling for multi-episode files and split episodes.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Create Metadata Extraction and Normalization System",
+          "description": "Build a system to extract, transform, and normalize metadata from different media types",
+          "dependencies": [
+            2,
+            3
+          ],
+          "details": "Implement a unified metadata model that works for both movies and TV shows, handle different metadata formats, extract and normalize external IDs (IMDB, TMDB, TVDB), and create a consistent tagging system across media types.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Implement Database Synchronization Logic",
+          "description": "Develop logic to efficiently synchronize Plex metadata with the application database",
+          "dependencies": [
+            4
+          ],
+          "details": "Create efficient upsert operations, handle deletions/removals from Plex, maintain relationship integrity, implement transaction management for data consistency, and add detailed logging for sync operations.",
+          "status": "pending"
+        },
+        {
+          "id": 6,
+          "title": "Build Incremental Update and Background Processing System",
+          "description": "Create a system for detecting and processing incremental updates in the background",
+          "dependencies": [
+            5
+          ],
+          "details": "Implement a change detection mechanism using Plex's updated_at timestamps, create a job queue for processing updates, develop a scheduler for periodic full syncs, add monitoring and alerting for failed jobs, and implement user notifications for completed imports.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Create Basic Frontend Structure",
+      "description": "Develop the initial HTML, CSS, and JavaScript structure for the frontend application.",
+      "details": "1. Create basic HTML structure in `app/frontend/index.html`:\n   ```html\n   <!DOCTYPE html>\n   <html lang=\"en\">\n   <head>\n       <meta charset=\"UTF-8\">\n       <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n       <title>Mood-Based Plex Recommender</title>\n       <link rel=\"stylesheet\" href=\"css/styles.css\">\n   </head>\n   <body>\n       <div class=\"container\">\n           <header>\n               <h1>Mood-Based Plex Recommender</h1>\n           </header>\n           \n           <main>\n               <div id=\"mood-form\" class=\"section\">\n                   <!-- Mood questionnaire will go here -->\n               </div>\n               \n               <div id=\"recommendation\" class=\"section hidden\">\n                   <!-- Recommendation results will go here -->\n               </div>\n               \n               <div id=\"feedback-form\" class=\"section hidden\">\n                   <!-- Feedback form will go here -->\n               </div>\n           </main>\n           \n           <footer>\n               <p>Connected to Plex: <span id=\"plex-status\">Not connected</span></p>\n           </footer>\n       </div>\n       \n       <script src=\"js/app.js\"></script>\n   </body>\n   </html>\n   ```\n2. Create CSS styles in `app/frontend/css/styles.css`\n3. Setup basic JavaScript in `app/frontend/js/app.js` with API communication functions\n4. Implement responsive design for various screen sizes\n5. Create loading indicators and basic error handling UI",
+      "testStrategy": "Verify the frontend loads correctly in different browsers. Test responsive design on different screen sizes. Ensure basic structure and styling are consistent.",
+      "priority": "medium",
+      "dependencies": [
+        2
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create HTML Layout Structure",
+          "description": "Develop the basic HTML structure for the application including header, main content area, and footer.",
+          "dependencies": [],
+          "details": "Create index.html with semantic HTML5 elements. Include navigation menu, main content containers, and placeholder sections for dynamic content. Set up proper document structure with appropriate meta tags for SEO and viewport settings.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Implement CSS Styling Framework",
+          "description": "Design and implement the core CSS styling for the application interface.",
+          "dependencies": [
+            1
+          ],
+          "details": "Create styles.css with global variables for colors, fonts, and spacing. Implement responsive grid system, component styling, and utility classes. Ensure consistent styling across all UI elements with proper CSS organization using BEM or similar methodology.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Develop Core JavaScript Functionality",
+          "description": "Implement essential JavaScript functionality for user interactions and dynamic content.",
+          "dependencies": [
+            1
+          ],
+          "details": "Create main.js with event listeners, DOM manipulation functions, and basic application logic. Set up module structure for code organization. Implement form validation, UI state management, and any required API interaction templates.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Implement Responsive Design",
+          "description": "Ensure the application is fully responsive across all device sizes.",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "Add media queries for different breakpoints (mobile, tablet, desktop). Test and optimize layout for various screen sizes. Implement responsive navigation patterns, flexible images, and appropriate font sizing. Ensure touch-friendly UI elements for mobile devices.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Implement Mood Questionnaire UI",
+      "description": "Create the user interface for collecting mood and context inputs from the user.",
+      "details": "1. Create HTML form for mood inputs in the mood-form section:\n   ```html\n   <form id=\"mood-questionnaire\">\n       <div class=\"form-group\">\n           <h3>What's your vibe?</h3>\n           <div class=\"mood-options\">\n               <label><input type=\"radio\" name=\"mood\" value=\"funny\" required> Funny</label>\n               <label><input type=\"radio\" name=\"mood\" value=\"action\" required> Action</label>\n               <label><input type=\"radio\" name=\"mood\" value=\"dramatic\" required> Dramatic</label>\n               <label><input type=\"radio\" name=\"mood\" value=\"relaxing\" required> Relaxing</label>\n           </div>\n       </div>\n       \n       <div class=\"form-group\">\n           <h3>Solo or group watching?</h3>\n           <div class=\"group-options\">\n               <label><input type=\"radio\" name=\"group\" value=\"solo\" required> Solo</label>\n               <label><input type=\"radio\" name=\"group\" value=\"couple\" required> Couple</label>\n               <label><input type=\"radio\" name=\"group\" value=\"group\" required> Group</label>\n           </div>\n       </div>\n       \n       <div class=\"form-group\">\n           <h3>Binge or short session?</h3>\n           <div class=\"session-options\">\n               <label><input type=\"radio\" name=\"session\" value=\"short\" required> Short (< 1 hour)</label>\n               <label><input type=\"radio\" name=\"session\" value=\"medium\" required> Medium (1-2 hours)</label>\n               <label><input type=\"radio\" name=\"session\" value=\"binge\" required> Binge (2+ hours)</label>\n           </div>\n       </div>\n       \n       <button type=\"submit\" class=\"btn primary-btn\">Get Recommendation</button>\n   </form>\n   ```\n2. Add JavaScript to handle form submission and API call\n3. Implement form validation\n4. Add visual feedback for selection (highlighting, animations)\n5. Store form values in session storage for persistence",
+      "testStrategy": "Test form submission with various combinations of inputs. Verify validation works correctly. Test that the form data is correctly sent to the API endpoint.",
+      "priority": "medium",
+      "dependencies": [
+        6
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create Mood Questionnaire Form Layout",
+          "description": "Design and implement the basic form structure with all required input fields for the mood questionnaire",
+          "dependencies": [],
+          "details": "Create a responsive form layout with appropriate input types (radio buttons, sliders, text areas) for mood assessment questions. Include section headings, question text, and a submission button. Ensure the layout follows accessibility guidelines and is mobile-friendly.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Implement Form Validation Logic",
+          "description": "Add client-side validation to ensure all required fields are completed correctly before submission",
+          "dependencies": [
+            1
+          ],
+          "details": "Write validation functions to check that all required fields have valid inputs. Implement real-time validation where appropriate. Create validation rules for different question types (e.g., required fields, text length limits, valid numerical ranges for mood ratings).",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Add Visual Feedback Components",
+          "description": "Implement visual cues and feedback elements to enhance user experience during form completion",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Add visual indicators for form validation status (error/success states). Implement progress indicators showing completion status. Create interactive elements like tooltips for additional guidance. Ensure feedback is accessible and clear for all users.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Develop Data Submission Handling",
+          "description": "Create the functionality to collect, format and submit questionnaire data to the backend",
+          "dependencies": [
+            2,
+            3
+          ],
+          "details": "Implement form submission handler to collect all input values. Format data according to API requirements. Add loading states during submission. Implement success and error handling for API responses. Include retry logic for failed submissions and appropriate user notifications.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Implement Recommendation Display UI",
+      "description": "Create the user interface for displaying movie or TV show recommendations to the user.",
+      "details": "1. Create HTML structure for recommendation display:\n   ```html\n   <div class=\"recommendation-container\">\n       <h2>Based on your mood, we recommend:</h2>\n       \n       <div class=\"media-card\">\n           <div class=\"media-poster\">\n               <img id=\"recommendation-poster\" src=\"\" alt=\"Media poster\">\n           </div>\n           <div class=\"media-details\">\n               <h3 id=\"recommendation-title\"></h3>\n               <p id=\"recommendation-year\"></p>\n               <p id=\"recommendation-genres\"></p>\n               <p id=\"recommendation-duration\"></p>\n               <div id=\"recommendation-summary\"></div>\n           </div>\n       </div>\n       \n       <div class=\"action-buttons\">\n           <button id=\"spin-again\" class=\"btn secondary-btn\">Spin Again</button>\n           <button id=\"watched-btn\" class=\"btn primary-btn\">I Watched This</button>\n       </div>\n   </div>\n   ```\n2. Add JavaScript to populate recommendation data from API response\n3. Implement \"Spin Again\" functionality to request another recommendation\n4. Add transition animations between questionnaire and recommendation\n5. Create placeholder for when no recommendations are available",
+      "testStrategy": "Test displaying recommendations with various metadata combinations. Verify the 'Spin Again' button works correctly. Test transitions between UI states.",
+      "priority": "medium",
+      "dependencies": [
+        6
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design Results Layout",
+          "description": "Create the UI layout for displaying recommendation results",
+          "dependencies": [],
+          "details": "Design a responsive grid/list layout for recommendation items. Include containers for images, titles, descriptions, and action buttons. Ensure the layout adapts to different screen sizes and maintains visual hierarchy. Create reusable components for recommendation cards.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Implement API Data Population",
+          "description": "Connect UI components to the recommendation API and populate with data",
+          "dependencies": [
+            1
+          ],
+          "details": "Create data fetching services to retrieve recommendations from the API. Implement data mapping to transform API responses into UI-friendly formats. Handle loading states while data is being fetched. Implement error handling for API failures.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Create Transition Animations",
+          "description": "Develop smooth animations for recommendation display transitions",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Implement fade-in animations when recommendations first load. Add subtle hover effects for interactive elements. Create smooth transitions when filtering or sorting recommendations. Ensure animations are performant and don't impact page responsiveness.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Implement Empty State Handling",
+          "description": "Design and implement UI for when no recommendations are available",
+          "dependencies": [
+            2
+          ],
+          "details": "Create visually appealing empty state UI with helpful messaging. Implement conditional rendering logic to display empty states when appropriate. Add suggestions or actions users can take when no recommendations exist. Test various scenarios that might trigger empty states.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Implement Feedback Collection UI",
+      "description": "Create the user interface for collecting user feedback on watched recommendations.",
+      "details": "1. Create HTML structure for feedback form:\n   ```html\n   <div class=\"feedback-container\">\n       <h2>How was \"<span id=\"feedback-title\"></span>\"?</h2>\n       \n       <form id=\"feedback-form\">\n           <input type=\"hidden\" id=\"recommendation-id\" name=\"recommendation_id\">\n           \n           <div class=\"form-group\">\n               <h3>Did you watch it to completion?</h3>\n               <div class=\"completion-options\">\n                   <label><input type=\"radio\" name=\"watched_completion\" value=\"true\" required> Yes</label>\n                   <label><input type=\"radio\" name=\"watched_completion\" value=\"false\" required> No</label>\n               </div>\n           </div>\n           \n           <div class=\"form-group\">\n               <h3>Would you watch it again?</h3>\n               <div class=\"rewatch-options\">\n                   <label><input type=\"radio\" name=\"would_watch_again\" value=\"true\" required> Yes</label>\n                   <label><input type=\"radio\" name=\"would_watch_again\" value=\"false\" required> No</label>\n               </div>\n           </div>\n           \n           <div class=\"form-group\">\n               <h3>Rating:</h3>\n               <div class=\"star-rating\">\n                   <input type=\"radio\" id=\"star5\" name=\"rating\" value=\"5\" required>\n                   <label for=\"star5\">★</label>\n                   <input type=\"radio\" id=\"star4\" name=\"rating\" value=\"4\">\n                   <label for=\"star4\">★</label>\n                   <input type=\"radio\" id=\"star3\" name=\"rating\" value=\"3\">\n                   <label for=\"star3\">★</label>\n                   <input type=\"radio\" id=\"star2\" name=\"rating\" value=\"2\">\n                   <label for=\"star2\">★</label>\n                   <input type=\"radio\" id=\"star1\" name=\"rating\" value=\"1\">\n                   <label for=\"star1\">★</label>\n               </div>\n           </div>\n           \n           <button type=\"submit\" class=\"btn primary-btn\">Submit Feedback</button>\n       </form>\n   </div>\n   ```\n2. Add JavaScript to handle form submission and API call\n3. Implement star rating functionality with visual feedback\n4. Add transition animations between recommendation and feedback\n5. Show confirmation message after feedback submission",
+      "testStrategy": "Test feedback form with various input combinations. Verify the star rating system works correctly. Test that feedback data is correctly sent to the API endpoint.",
+      "priority": "medium",
+      "dependencies": [
+        8
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create Feedback Form Layout",
+          "description": "Design and implement the basic structure of the feedback collection form",
+          "dependencies": [],
+          "details": "Create a responsive form layout with appropriate sections for user information, recommendation feedback, star rating placeholder, and comments. Include proper styling and ensure the form matches the overall application design.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Implement Star Rating Component",
+          "description": "Develop an interactive star rating system for users to rate recommendations",
+          "dependencies": [
+            1
+          ],
+          "details": "Create a reusable star rating component that allows users to select 1-5 stars. Include hover effects, selected state styling, and ensure it's accessible. The component should provide the selected rating value to the parent form.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Add Form Validation",
+          "description": "Implement client-side validation for all form fields",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Add validation rules for required fields, proper formatting of inputs, and appropriate error messages. Ensure the star rating is required and validate that users have selected a rating before submission. Display validation errors in a user-friendly manner.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Handle Form Submission",
+          "description": "Implement the submission logic and success/error states",
+          "dependencies": [
+            3
+          ],
+          "details": "Create the submission handler that collects all form data, including the star rating, and prepares it for API submission. Implement loading states during submission, success messages upon completion, and appropriate error handling. Include the ability to reference which recommendation the feedback relates to.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Implement Basic Recommendation Engine",
+      "description": "Create a rule-based recommendation system that filters media based on user mood inputs.",
+      "details": "1. Create recommendation module in `app/backend/recommender.py`\n2. Implement basic filtering logic based on mood inputs:\n   ```python\n   def get_basic_recommendations(db_session, mood, group_size, session_length):\n       \"\"\"Get recommendations based on simple rule-based filtering\"\"\"\n       query = db_session.query(Media)\n       \n       # Filter by mood\n       if mood == 'funny':\n           query = query.filter(Media.genres.like('%Comedy%'))\n       elif mood == 'action':\n           query = query.filter(Media.genres.like('%Action%'))\n       elif mood == 'dramatic':\n           query = query.filter(Media.genres.like('%Drama%'))\n       elif mood == 'relaxing':\n           # Relaxing could be documentaries, nature shows, etc.\n           query = query.filter(or_(\n               Media.genres.like('%Documentary%'),\n               Media.genres.like('%Family%')\n           ))\n       \n       # Filter by session length\n       if session_length == 'short':\n           # Movies under 90 minutes or TV episodes\n           query = query.filter(or_(\n               and_(Media.type == 'movie', Media.duration <= 90),\n               Media.type == 'show'\n           ))\n       elif session_length == 'medium':\n           # Movies between 90-150 minutes\n           query = query.filter(or_(\n               and_(Media.type == 'movie', Media.duration > 90, Media.duration <= 150),\n               Media.type == 'show'\n           ))\n       elif session_length == 'binge':\n           # Longer movies or TV shows good for binging\n           query = query.filter(or_(\n               and_(Media.type == 'movie', Media.duration > 120),\n               Media.type == 'show'\n           ))\n       \n       # Get random results from filtered query\n       results = query.order_by(func.random()).limit(3).all()\n       \n       # If no results, try with more relaxed filters\n       if not results:\n           results = db_session.query(Media).order_by(func.random()).limit(3).all()\n       \n       return results\n   ```\n3. Implement API endpoint to return recommendations\n4. Store recommendation in database for later feedback\n5. Add logging for recommendation requests",
+      "testStrategy": "Test recommendation engine with various mood inputs. Verify filtering logic works correctly. Test edge cases like no matching content or empty database.",
+      "priority": "high",
+      "dependencies": [
+        3,
+        5
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement Content Filtering Logic",
+          "description": "Create the core filtering mechanism that selects appropriate content based on user preferences and history",
+          "dependencies": [],
+          "details": "Develop filtering algorithms that consider content tags, user viewing history, and preference settings. Include logic to exclude recently watched content and implement weighted scoring for content relevance. Handle edge cases like new users with limited history.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Develop Mood-Based Recommendation Rules",
+          "description": "Create a rule system that adjusts content recommendations based on user-selected mood states",
+          "dependencies": [
+            1
+          ],
+          "details": "Define mood categories (relaxed, energetic, focused, etc.) and map content tags to these moods. Implement priority adjustments when mood is selected. Create fallback logic when insufficient mood-matching content is available.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Implement Session Length Handling",
+          "description": "Add functionality to tailor recommendations based on user's available time for a session",
+          "dependencies": [
+            1
+          ],
+          "details": "Create algorithms to select content that fits within specified time constraints. Implement logic for combining shorter content pieces to fill longer sessions. Handle edge cases where no content matches the exact time requirements.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Design Recommendation Storage System",
+          "description": "Create a data structure and storage mechanism for generated recommendations",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "Design database schema for storing recommendation sets. Implement caching mechanism for frequent recommendations. Create expiration logic for outdated recommendations. Ensure efficient retrieval of stored recommendations.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Implement Recommendation API Endpoint",
+          "description": "Create the API endpoint that serves recommendations to the frontend",
+          "dependencies": [
+            4
+          ],
+          "details": "Develop RESTful API endpoint that accepts user parameters (mood, time available, etc.). Implement request validation and error handling. Create response formatting with all necessary content metadata. Add pagination support for large recommendation sets.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Implement Feedback Collection and Storage",
+      "description": "Create functionality to collect and store user feedback on recommendations.",
+      "details": "1. Implement API endpoint for feedback submission:\n   ```python\n   @app.route('/api/feedback', methods=['POST'])\n   def submit_feedback():\n       data = request.json\n       \n       # Validate required fields\n       required_fields = ['recommendation_id', 'watched_completion', 'would_watch_again', 'rating']\n       for field in required_fields:\n           if field not in data:\n               return jsonify({'error': f'Missing required field: {field}'}), 400\n       \n       # Convert string booleans to actual booleans if needed\n       watched_completion = data['watched_completion']\n       if isinstance(watched_completion, str):\n           watched_completion = watched_completion.lower() == 'true'\n           \n       would_watch_again = data['would_watch_again']\n       if isinstance(would_watch_again, str):\n           would_watch_again = would_watch_again.lower() == 'true'\n       \n       # Create feedback entry\n       feedback = Feedback(\n           recommendation_id=data['recommendation_id'],\n           watched_completion=watched_completion,\n           would_watch_again=would_watch_again,\n           rating=int(data['rating'])\n       )\n       \n       db_session = get_db_session()\n       try:\n           db_session.add(feedback)\n           db_session.commit()\n           return jsonify({'status': 'success'})\n       except Exception as e:\n           db_session.rollback()\n           return jsonify({'error': str(e)}), 500\n       finally:\n           db_session.close()\n   ```\n2. Add validation for feedback data\n3. Create utility functions for retrieving feedback history\n4. Implement logging for feedback submissions",
+      "testStrategy": "Test feedback submission with valid and invalid data. Verify feedback is correctly stored in the database. Test error handling for invalid recommendation IDs.",
+      "priority": "high",
+      "dependencies": [
+        3,
+        9
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design and implement feedback API endpoints",
+          "description": "Create RESTful API endpoints for submitting, updating, and deleting feedback",
+          "dependencies": [],
+          "details": "Develop API routes for POST /feedback (new submission), PUT /feedback/:id (update), DELETE /feedback/:id (removal), and GET /feedback (retrieval with optional filters). Include proper request handling, authentication middleware, and response formatting with appropriate status codes.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Implement feedback data validation",
+          "description": "Create robust validation for incoming feedback data",
+          "dependencies": [
+            1
+          ],
+          "details": "Develop validation schemas for feedback data including required fields (user ID, content, rating), data type validation, content length restrictions, and sanitization of user inputs. Implement error handling that returns descriptive validation errors to the client.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Create database operations for feedback storage",
+          "description": "Implement database models and operations for storing and managing feedback data",
+          "dependencies": [
+            2
+          ],
+          "details": "Design database schema for feedback with appropriate fields (ID, user ID, timestamp, content, rating, category, status). Implement database operations including create, read, update, delete functions with proper error handling and transaction support for data integrity.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Develop feedback retrieval and analysis utilities",
+          "description": "Create utility functions for retrieving and analyzing feedback data",
+          "dependencies": [
+            3
+          ],
+          "details": "Implement functions for querying feedback with filtering options (by date range, rating, category), pagination support, and sorting capabilities. Add utilities for basic analytics like average ratings, feedback volume trends, and common feedback themes identification.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Implement ML Model Training",
+      "description": "Create functionality to train a machine learning model based on collected feedback data.",
+      "details": "1. Create ML module in `app/backend/ml_model.py`\n2. Implement data preparation functions:\n   ```python\n   def prepare_training_data(db_session):\n       \"\"\"Prepare training data from feedback and recommendations\"\"\"\n       # Join feedback with recommendations and media\n       query = db_session.query(\n           Feedback, Recommendation, Media\n       ).join(\n           Recommendation, Feedback.recommendation_id == Recommendation.id\n       ).join(\n           Media, Recommendation.media_id == Media.id\n       )\n       \n       results = query.all()\n       \n       X = []\n       y = []\n       \n       for feedback, recommendation, media in results:\n           # Extract features\n           mood_data = json.loads(recommendation.mood)\n           \n           # One-hot encode categorical features\n           mood_funny = 1 if mood_data.get('mood') == 'funny' else 0\n           mood_action = 1 if mood_data.get('mood') == 'action' else 0\n           mood_dramatic = 1 if mood_data.get('mood') == 'dramatic' else 0\n           mood_relaxing = 1 if mood_data.get('mood') == 'relaxing' else 0\n           \n           group_solo = 1 if recommendation.group_size == 'solo' else 0\n           group_couple = 1 if recommendation.group_size == 'couple' else 0\n           group_group = 1 if recommendation.group_size == 'group' else 0\n           \n           session_short = 1 if recommendation.session_length == 'short' else 0\n           session_medium = 1 if recommendation.session_length == 'medium' else 0\n           session_binge = 1 if recommendation.session_length == 'binge' else 0\n           \n           # Extract genre features\n           genres = media.genres.split(',') if media.genres else []\n           genre_comedy = 1 if 'Comedy' in genres else 0\n           genre_action = 1 if 'Action' in genres else 0\n           genre_drama = 1 if 'Drama' in genres else 0\n           genre_thriller = 1 if 'Thriller' in genres else 0\n           genre_scifi = 1 if 'Science Fiction' in genres else 0\n           \n           # Create feature vector\n           features = [\n               mood_funny, mood_action, mood_dramatic, mood_relaxing,\n               group_solo, group_couple, group_group,\n               session_short, session_medium, session_binge,\n               genre_comedy, genre_action, genre_drama, genre_thriller, genre_scifi,\n               media.duration or 0,  # Handle None values\n               media.year or 0  # Handle None values\n           ]\n           \n           X.append(features)\n           \n           # Target variable: positive experience (rating >= 4 and would watch again)\n           positive_experience = 1 if feedback.rating >= 4 and feedback.would_watch_again else 0\n           y.append(positive_experience)\n       \n       return np.array(X), np.array(y)\n   ```\n3. Implement model training function:\n   ```python\n   def train_model(X, y):\n       \"\"\"Train a logistic regression model\"\"\"\n       if len(np.unique(y)) < 2:\n           # Not enough diversity in target variable\n           return None\n           \n       model = LogisticRegression()\n       model.fit(X, y)\n       return model\n   ```\n4. Implement model serialization and loading:\n   ```python\n   def save_model(model, filepath='app/models/recommendation_model.pkl'):\n       \"\"\"Save model to disk\"\"\"\n       joblib.dump(model, filepath)\n       \n   def load_model(filepath='app/models/recommendation_model.pkl'):\n       \"\"\"Load model from disk\"\"\"\n       try:\n           return joblib.load(filepath)\n       except:\n           return None\n   ```\n5. Create API endpoint to trigger model training",
+      "testStrategy": "Test model training with sample feedback data. Verify model can be saved and loaded correctly. Test handling of edge cases like insufficient data.",
+      "priority": "high",
+      "dependencies": [
+        10,
+        11
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Data Preparation",
+          "description": "Collect, clean, and preprocess the dataset for model training",
+          "dependencies": [],
+          "details": "Gather relevant data from sources, handle missing values, remove outliers, normalize/standardize features, and split into training/validation/test sets. Document data quality metrics and preprocessing steps.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Feature Engineering",
+          "description": "Create and select optimal features for the model",
+          "dependencies": [
+            1
+          ],
+          "details": "Perform feature extraction, transformation, and selection. Create new features if needed, apply dimensionality reduction techniques, and evaluate feature importance. Document all feature engineering decisions.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Model Selection",
+          "description": "Evaluate and select the best model architecture",
+          "dependencies": [
+            2
+          ],
+          "details": "Benchmark different algorithms (e.g., regression, tree-based, neural networks), perform hyperparameter tuning, and compare performance metrics. Document selection criteria and performance comparisons.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Training Pipeline Implementation",
+          "description": "Develop a reproducible training pipeline",
+          "dependencies": [
+            3
+          ],
+          "details": "Create a modular pipeline for data ingestion, preprocessing, model training, and evaluation. Implement cross-validation, early stopping, and logging of metrics. Ensure reproducibility with fixed random seeds.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Model Serialization",
+          "description": "Save and version the trained model",
+          "dependencies": [
+            4
+          ],
+          "details": "Implement model serialization using appropriate formats (e.g., pickle, ONNX, TensorFlow SavedModel). Set up version control for models and create metadata documentation for each version.",
+          "status": "pending"
+        },
+        {
+          "id": 6,
+          "title": "API Endpoint Implementation",
+          "description": "Create API endpoints for model inference",
+          "dependencies": [
+            5
+          ],
+          "details": "Develop RESTful API endpoints for model inference, implement input validation, error handling, and response formatting. Create documentation for API usage and deploy with appropriate scaling considerations.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "Implement ML-Based Recommendation Scoring",
+      "description": "Enhance the recommendation engine to use the trained ML model for scoring and ranking potential recommendations.",
+      "details": "1. Extend the recommendation module to use ML model for scoring:\n   ```python\n   def get_ml_recommendations(db_session, mood, group_size, session_length):\n       \"\"\"Get recommendations using ML model for scoring\"\"\"\n       # First get candidate media using basic filtering\n       candidates = get_basic_recommendations(db_session, mood, group_size, session_length)\n       \n       # Load the ML model\n       model = load_model()\n       if not model:\n           # Fall back to basic recommendations if no model is available\n           return candidates[:3]\n       \n       # Prepare features for each candidate\n       candidate_scores = []\n       for media in candidates:\n           # Create the same feature vector used in training\n           mood_funny = 1 if mood == 'funny' else 0\n           mood_action = 1 if mood == 'action' else 0\n           mood_dramatic = 1 if mood == 'dramatic' else 0\n           mood_relaxing = 1 if mood == 'relaxing' else 0\n           \n           group_solo = 1 if group_size == 'solo' else 0\n           group_couple = 1 if group_size == 'couple' else 0\n           group_group = 1 if group_size == 'group' else 0\n           \n           session_short = 1 if session_length == 'short' else 0\n           session_medium = 1 if session_length == 'medium' else 0\n           session_binge = 1 if session_length == 'binge' else 0\n           \n           genres = media.genres.split(',') if media.genres else []\n           genre_comedy = 1 if 'Comedy' in genres else 0\n           genre_action = 1 if 'Action' in genres else 0\n           genre_drama = 1 if 'Drama' in genres else 0\n           genre_thriller = 1 if 'Thriller' in genres else 0\n           genre_scifi = 1 if 'Science Fiction' in genres else 0\n           \n           features = [\n               mood_funny, mood_action, mood_dramatic, mood_relaxing,\n               group_solo, group_couple, group_group,\n               session_short, session_medium, session_binge,\n               genre_comedy, genre_action, genre_drama, genre_thriller, genre_scifi,\n               media.duration or 0,\n               media.year or 0\n           ]\n           \n           # Get prediction probability\n           score = model.predict_proba([features])[0][1]  # Probability of positive class\n           candidate_scores.append((media, score))\n       \n       # Sort by score and return top 3\n       sorted_candidates = sorted(candidate_scores, key=lambda x: x[1], reverse=True)\n       return [media for media, score in sorted_candidates[:3]]\n   ```\n2. Update the recommendation API endpoint to use ML scoring\n3. Add fallback to basic recommendations when ML model is not available\n4. Store prediction score with recommendation for analysis",
+      "testStrategy": "Test ML-based recommendations with various inputs. Compare results with and without ML scoring. Verify fallback to basic recommendations works when no model is available.",
+      "priority": "medium",
+      "dependencies": [
+        12
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Feature Extraction Pipeline",
+          "description": "Develop a pipeline to extract relevant features from user data, content metadata, and interaction history for recommendation scoring.",
+          "dependencies": [],
+          "details": "Create a modular feature extraction system that processes user profiles, content characteristics, and historical interactions. Implement feature normalization, encoding of categorical variables, and handling of missing data. Ensure the pipeline can be executed efficiently in real-time for scoring recommendations.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "ML Model Integration",
+          "description": "Integrate the trained ML model with the recommendation system to enable real-time scoring of potential recommendations.",
+          "dependencies": [
+            1
+          ],
+          "details": "Develop an API or service that loads the trained ML model and accepts feature vectors as input. Implement caching mechanisms to improve performance. Create monitoring tools to track model performance and detect drift. Ensure the integration supports model versioning and A/B testing capabilities.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Score Calculation Logic",
+          "description": "Implement the logic to calculate final recommendation scores by combining ML model outputs with business rules and personalization factors.",
+          "dependencies": [
+            2
+          ],
+          "details": "Design a scoring algorithm that weights ML model predictions alongside business priorities, content freshness, and diversity requirements. Implement configurable scoring parameters that can be adjusted without code changes. Create unit tests to verify scoring behavior across different scenarios.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Fallback Mechanism Implementation",
+          "description": "Develop robust fallback strategies for handling edge cases, cold starts, and model failures in the recommendation scoring system.",
+          "dependencies": [
+            3
+          ],
+          "details": "Implement tiered fallback approaches including popularity-based recommendations, content similarity, and editorial selections. Create logic to detect when the ML scoring is unreliable or unavailable. Design the system to gracefully degrade performance rather than fail completely. Document fallback behaviors for operational support.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Result Ranking and Presentation",
+          "description": "Develop the final ranking algorithm to sort recommendations based on scores and implement the presentation layer for displaying results.",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "Create an efficient sorting mechanism that can handle large recommendation sets. Implement diversity rules to prevent similar items from clustering together. Design a caching strategy for frequently requested recommendation sets. Develop APIs that return properly formatted recommendation results with explanation metadata when requested.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Dockerize the Application",
+      "description": "Create Docker configuration to containerize the entire application for easy deployment.",
+      "details": "1. Create Dockerfile in project root:\n   ```dockerfile\n   FROM python:3.9-slim\n   \n   WORKDIR /app\n   \n   # Install dependencies\n   COPY requirements.txt .\n   RUN pip install --no-cache-dir -r requirements.txt\n   \n   # Copy application code\n   COPY app/ ./app/\n   \n   # Create directories for data and models\n   RUN mkdir -p app/data app/models\n   \n   # Expose port\n   EXPOSE 5000\n   \n   # Set environment variables\n   ENV FLASK_APP=app/backend/app.py\n   ENV FLASK_ENV=production\n   \n   # Run the application\n   CMD [\"python\", \"app/backend/app.py\"]\n   ```\n2. Create docker-compose.yml for easier management:\n   ```yaml\n   version: '3'\n   \n   services:\n     plex-recommender:\n       build: .\n       ports:\n         - \"5000:5000\"\n       volumes:\n         - ./app/data:/app/app/data\n         - ./app/models:/app/app/models\n       restart: unless-stopped\n       environment:\n         - FLASK_APP=app/backend/app.py\n         - FLASK_ENV=production\n   ```\n3. Add .dockerignore file to exclude unnecessary files\n4. Create startup script for initializing the application\n5. Document Docker usage in README.md",
+      "testStrategy": "Build Docker image and verify it runs correctly. Test application functionality within the container. Verify data persistence using Docker volumes.",
+      "priority": "medium",
+      "dependencies": [
+        2,
+        6
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create Dockerfile",
+          "description": "Create a Dockerfile that properly packages the application with all dependencies",
+          "dependencies": [],
+          "details": "Define the base image, set up the working directory, copy application files, install dependencies, expose necessary ports, and specify the command to run the application. Ensure the image is optimized for size and security by using multi-stage builds if appropriate.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Configure docker-compose.yml",
+          "description": "Create a docker-compose configuration to manage multiple services",
+          "dependencies": [
+            1
+          ],
+          "details": "Define all required services (application, database, cache, etc.), set environment variables, configure networks, and establish service dependencies. Ensure proper startup order using depends_on and healthchecks where necessary.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Implement Volume Management",
+          "description": "Set up Docker volumes for persistent data storage",
+          "dependencies": [
+            2
+          ],
+          "details": "Identify data that needs to persist between container restarts (database files, uploaded content, logs, etc.). Configure named volumes in docker-compose.yml, establish proper mount points, and ensure appropriate permissions for the container user.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Create Deployment Documentation",
+          "description": "Document the Docker setup and deployment process",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "Write comprehensive documentation covering: prerequisites, build instructions, environment variable configuration, deployment commands, volume backup procedures, container health monitoring, and troubleshooting steps. Include examples for both development and production environments.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Implement Manual Retraining UI and Polish",
+      "description": "Add UI for manual model retraining and polish the overall user experience.",
+      "details": "1. Add admin section to frontend:\n   ```html\n   <div id=\"admin-panel\" class=\"section\">\n       <h2>Admin Panel</h2>\n       <div class=\"stats-container\">\n           <div class=\"stat-box\">\n               <h3>Total Recommendations</h3>\n               <p id=\"total-recommendations\">0</p>\n           </div>\n           <div class=\"stat-box\">\n               <h3>Feedback Collected</h3>\n               <p id=\"total-feedback\">0</p>\n           </div>\n           <div class=\"stat-box\">\n               <h3>Model Last Trained</h3>\n               <p id=\"last-trained\">Never</p>\n           </div>\n       </div>\n       <button id=\"retrain-btn\" class=\"btn primary-btn\">Retrain Model</button>\n       <div id=\"training-status\" class=\"hidden\"></div>\n   </div>\n   ```\n2. Add JavaScript to handle model retraining:\n   ```javascript\n   document.getElementById('retrain-btn').addEventListener('click', function() {\n       const trainingStatus = document.getElementById('training-status');\n       trainingStatus.textContent = 'Training in progress...';\n       trainingStatus.classList.remove('hidden');\n       \n       fetch('/api/train', {\n           method: 'POST'\n       })\n       .then(response => response.json())\n       .then(data => {\n           if (data.status === 'success') {\n               trainingStatus.textContent = 'Model trained successfully!';\n               document.getElementById('last-trained').textContent = new Date().toLocaleString();\n           } else {\n               trainingStatus.textContent = 'Training failed: ' + data.error;\n           }\n       })\n       .catch(error => {\n           trainingStatus.textContent = 'Error: ' + error;\n       });\n   });\n   ```\n3. Add API endpoint to get application statistics\n4. Improve UI transitions and animations\n5. Add error handling and user feedback throughout the application\n6. Implement responsive design improvements",
+      "testStrategy": "Test manual retraining functionality. Verify statistics are displayed correctly. Test UI on different devices and screen sizes to ensure responsive design works correctly.",
+      "priority": "low",
+      "dependencies": [
+        9,
+        12,
+        13
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create Admin Panel Framework",
+          "description": "Design and implement the basic structure of the admin panel for manual retraining",
+          "dependencies": [],
+          "details": "Create the layout, navigation, and authentication for the admin panel. Include sidebar navigation, header with user info, and main content area. Ensure proper access control so only authorized users can access the retraining functionality.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Implement Model Statistics Display",
+          "description": "Create visualizations and tables to display current model performance metrics",
+          "dependencies": [
+            1
+          ],
+          "details": "Design and implement charts, graphs and tables showing key model metrics like accuracy, F1 score, precision, recall, and confusion matrix. Include historical performance data and trend analysis. Add filtering options by date ranges.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Develop Manual Retraining Controls",
+          "description": "Create UI components for initiating and monitoring model retraining",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Implement form controls for selecting training parameters, dataset versions, and model configurations. Add progress indicators, real-time logs, and status updates during training. Include cancel/pause functionality and error handling with clear user feedback.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Polish UI and Improve User Experience",
+          "description": "Enhance the visual design and usability of the retraining interface",
+          "dependencies": [
+            3
+          ],
+          "details": "Apply consistent styling, improve component spacing and alignment, add helpful tooltips and documentation links. Implement confirmation dialogs for critical actions, keyboard shortcuts, and accessibility improvements. Ensure loading states and transitions are smooth.",
+          "status": "pending"
+        },
+        {
+          "id": 5,
+          "title": "Implement Responsive Design",
+          "description": "Ensure the retraining UI works well across different screen sizes and devices",
+          "dependencies": [
+            4
+          ],
+          "details": "Test and optimize layout for desktop, tablet, and mobile views. Implement responsive breakpoints, collapsible sections, and touch-friendly controls. Ensure charts and statistics visualizations adapt appropriately to smaller screens without losing critical information.",
+          "status": "pending"
+        }
+      ]
+    }
+  ]
+}

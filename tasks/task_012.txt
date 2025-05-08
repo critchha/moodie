@@ -1,0 +1,137 @@
+# Task ID: 12
+# Title: Implement ML Model Training
+# Status: pending
+# Dependencies: 10, 11
+# Priority: high
+# Description: Create functionality to train a machine learning model based on collected feedback data.
+# Details:
+1. Create ML module in `app/backend/ml_model.py`
+2. Implement data preparation functions:
+   ```python
+   def prepare_training_data(db_session):
+       """Prepare training data from feedback and recommendations"""
+       # Join feedback with recommendations and media
+       query = db_session.query(
+           Feedback, Recommendation, Media
+       ).join(
+           Recommendation, Feedback.recommendation_id == Recommendation.id
+       ).join(
+           Media, Recommendation.media_id == Media.id
+       )
+       
+       results = query.all()
+       
+       X = []
+       y = []
+       
+       for feedback, recommendation, media in results:
+           # Extract features
+           mood_data = json.loads(recommendation.mood)
+           
+           # One-hot encode categorical features
+           mood_funny = 1 if mood_data.get('mood') == 'funny' else 0
+           mood_action = 1 if mood_data.get('mood') == 'action' else 0
+           mood_dramatic = 1 if mood_data.get('mood') == 'dramatic' else 0
+           mood_relaxing = 1 if mood_data.get('mood') == 'relaxing' else 0
+           
+           group_solo = 1 if recommendation.group_size == 'solo' else 0
+           group_couple = 1 if recommendation.group_size == 'couple' else 0
+           group_group = 1 if recommendation.group_size == 'group' else 0
+           
+           session_short = 1 if recommendation.session_length == 'short' else 0
+           session_medium = 1 if recommendation.session_length == 'medium' else 0
+           session_binge = 1 if recommendation.session_length == 'binge' else 0
+           
+           # Extract genre features
+           genres = media.genres.split(',') if media.genres else []
+           genre_comedy = 1 if 'Comedy' in genres else 0
+           genre_action = 1 if 'Action' in genres else 0
+           genre_drama = 1 if 'Drama' in genres else 0
+           genre_thriller = 1 if 'Thriller' in genres else 0
+           genre_scifi = 1 if 'Science Fiction' in genres else 0
+           
+           # Create feature vector
+           features = [
+               mood_funny, mood_action, mood_dramatic, mood_relaxing,
+               group_solo, group_couple, group_group,
+               session_short, session_medium, session_binge,
+               genre_comedy, genre_action, genre_drama, genre_thriller, genre_scifi,
+               media.duration or 0,  # Handle None values
+               media.year or 0  # Handle None values
+           ]
+           
+           X.append(features)
+           
+           # Target variable: positive experience (rating >= 4 and would watch again)
+           positive_experience = 1 if feedback.rating >= 4 and feedback.would_watch_again else 0
+           y.append(positive_experience)
+       
+       return np.array(X), np.array(y)
+   ```
+3. Implement model training function:
+   ```python
+   def train_model(X, y):
+       """Train a logistic regression model"""
+       if len(np.unique(y)) < 2:
+           # Not enough diversity in target variable
+           return None
+           
+       model = LogisticRegression()
+       model.fit(X, y)
+       return model
+   ```
+4. Implement model serialization and loading:
+   ```python
+   def save_model(model, filepath='app/models/recommendation_model.pkl'):
+       """Save model to disk"""
+       joblib.dump(model, filepath)
+       
+   def load_model(filepath='app/models/recommendation_model.pkl'):
+       """Load model from disk"""
+       try:
+           return joblib.load(filepath)
+       except:
+           return None
+   ```
+5. Create API endpoint to trigger model training
+
+# Test Strategy:
+Test model training with sample feedback data. Verify model can be saved and loaded correctly. Test handling of edge cases like insufficient data.
+
+# Subtasks:
+## 1. Data Preparation [pending]
+### Dependencies: None
+### Description: Collect, clean, and preprocess the dataset for model training
+### Details:
+Gather relevant data from sources, handle missing values, remove outliers, normalize/standardize features, and split into training/validation/test sets. Document data quality metrics and preprocessing steps.
+
+## 2. Feature Engineering [pending]
+### Dependencies: 12.1
+### Description: Create and select optimal features for the model
+### Details:
+Perform feature extraction, transformation, and selection. Create new features if needed, apply dimensionality reduction techniques, and evaluate feature importance. Document all feature engineering decisions.
+
+## 3. Model Selection [pending]
+### Dependencies: 12.2
+### Description: Evaluate and select the best model architecture
+### Details:
+Benchmark different algorithms (e.g., regression, tree-based, neural networks), perform hyperparameter tuning, and compare performance metrics. Document selection criteria and performance comparisons.
+
+## 4. Training Pipeline Implementation [pending]
+### Dependencies: 12.3
+### Description: Develop a reproducible training pipeline
+### Details:
+Create a modular pipeline for data ingestion, preprocessing, model training, and evaluation. Implement cross-validation, early stopping, and logging of metrics. Ensure reproducibility with fixed random seeds.
+
+## 5. Model Serialization [pending]
+### Dependencies: 12.4
+### Description: Save and version the trained model
+### Details:
+Implement model serialization using appropriate formats (e.g., pickle, ONNX, TensorFlow SavedModel). Set up version control for models and create metadata documentation for each version.
+
+## 6. API Endpoint Implementation [pending]
+### Dependencies: 12.5
+### Description: Create API endpoints for model inference
+### Details:
+Develop RESTful API endpoints for model inference, implement input validation, error handling, and response formatting. Create documentation for API usage and deploy with appropriate scaling considerations.
+

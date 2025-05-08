@@ -1,0 +1,95 @@
+# Task ID: 10
+# Title: Implement Basic Recommendation Engine
+# Status: pending
+# Dependencies: 3, 5
+# Priority: high
+# Description: Create a rule-based recommendation system that filters media based on user mood inputs.
+# Details:
+1. Create recommendation module in `app/backend/recommender.py`
+2. Implement basic filtering logic based on mood inputs:
+   ```python
+   def get_basic_recommendations(db_session, mood, group_size, session_length):
+       """Get recommendations based on simple rule-based filtering"""
+       query = db_session.query(Media)
+       
+       # Filter by mood
+       if mood == 'funny':
+           query = query.filter(Media.genres.like('%Comedy%'))
+       elif mood == 'action':
+           query = query.filter(Media.genres.like('%Action%'))
+       elif mood == 'dramatic':
+           query = query.filter(Media.genres.like('%Drama%'))
+       elif mood == 'relaxing':
+           # Relaxing could be documentaries, nature shows, etc.
+           query = query.filter(or_(
+               Media.genres.like('%Documentary%'),
+               Media.genres.like('%Family%')
+           ))
+       
+       # Filter by session length
+       if session_length == 'short':
+           # Movies under 90 minutes or TV episodes
+           query = query.filter(or_(
+               and_(Media.type == 'movie', Media.duration <= 90),
+               Media.type == 'show'
+           ))
+       elif session_length == 'medium':
+           # Movies between 90-150 minutes
+           query = query.filter(or_(
+               and_(Media.type == 'movie', Media.duration > 90, Media.duration <= 150),
+               Media.type == 'show'
+           ))
+       elif session_length == 'binge':
+           # Longer movies or TV shows good for binging
+           query = query.filter(or_(
+               and_(Media.type == 'movie', Media.duration > 120),
+               Media.type == 'show'
+           ))
+       
+       # Get random results from filtered query
+       results = query.order_by(func.random()).limit(3).all()
+       
+       # If no results, try with more relaxed filters
+       if not results:
+           results = db_session.query(Media).order_by(func.random()).limit(3).all()
+       
+       return results
+   ```
+3. Implement API endpoint to return recommendations
+4. Store recommendation in database for later feedback
+5. Add logging for recommendation requests
+
+# Test Strategy:
+Test recommendation engine with various mood inputs. Verify filtering logic works correctly. Test edge cases like no matching content or empty database.
+
+# Subtasks:
+## 1. Implement Content Filtering Logic [pending]
+### Dependencies: None
+### Description: Create the core filtering mechanism that selects appropriate content based on user preferences and history
+### Details:
+Develop filtering algorithms that consider content tags, user viewing history, and preference settings. Include logic to exclude recently watched content and implement weighted scoring for content relevance. Handle edge cases like new users with limited history.
+
+## 2. Develop Mood-Based Recommendation Rules [pending]
+### Dependencies: 10.1
+### Description: Create a rule system that adjusts content recommendations based on user-selected mood states
+### Details:
+Define mood categories (relaxed, energetic, focused, etc.) and map content tags to these moods. Implement priority adjustments when mood is selected. Create fallback logic when insufficient mood-matching content is available.
+
+## 3. Implement Session Length Handling [pending]
+### Dependencies: 10.1
+### Description: Add functionality to tailor recommendations based on user's available time for a session
+### Details:
+Create algorithms to select content that fits within specified time constraints. Implement logic for combining shorter content pieces to fill longer sessions. Handle edge cases where no content matches the exact time requirements.
+
+## 4. Design Recommendation Storage System [pending]
+### Dependencies: 10.1, 10.2, 10.3
+### Description: Create a data structure and storage mechanism for generated recommendations
+### Details:
+Design database schema for storing recommendation sets. Implement caching mechanism for frequent recommendations. Create expiration logic for outdated recommendations. Ensure efficient retrieval of stored recommendations.
+
+## 5. Implement Recommendation API Endpoint [pending]
+### Dependencies: 10.4
+### Description: Create the API endpoint that serves recommendations to the frontend
+### Details:
+Develop RESTful API endpoint that accepts user parameters (mood, time available, etc.). Implement request validation and error handling. Create response formatting with all necessary content metadata. Add pagination support for large recommendation sets.
+

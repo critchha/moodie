@@ -1,0 +1,133 @@
+
+# 🎬 Mood-Based Plex Recommender – Product Requirements Document
+
+## Project Overview
+
+A local web application that connects to a Plex Media Server and recommends movies or TV shows based on user mood and context. It collects user feedback (e.g., “watched to completion”, “would watch again”, ratings) to gradually train a personalized recommendation model using lightweight machine learning.
+
+The entire app will be containerized using Docker and optionally run on a local server or NAS.
+
+---
+
+## Goals
+
+- Build a mood-based media recommender that interacts with Plex.
+- Collect and store user mood inputs and feedback per suggestion.
+- Use the collected data to train a local ML model that improves recommendations over time.
+- Host the application locally in a Dockerized environment.
+
+---
+
+## Target Audience
+
+- Single user or household with a Plex Media Server.
+- Users who experience choice fatigue when deciding what to watch.
+- Users interested in personalized content discovery.
+
+---
+
+## Core Features
+
+### 1. Plex Integration
+- Authenticate and connect to Plex Media Server.
+- Pull available media metadata (title, genre, runtime, summary, etc.).
+- Store locally for faster access/filtering.
+
+### 2. Mood-Based Questionnaire
+- Simple UI with mood/contextual questions:
+  - “What’s your vibe?” (funny, action, dramatic, relaxing)
+  - “Solo or group watching?”
+  - “Binge or short session?”
+  - “Seen this already?” (optional future tracking)
+
+### 3. Recommendation Engine
+- Filter media based on mood input and metadata.
+- Use ML model to score each candidate for likely enjoyment.
+- Return 1–3 suggestions to the user.
+
+### 4. Feedback Logging
+- After viewing suggestion, user can submit:
+  - Watched to completion? (yes/no)
+  - Would watch again? (yes/no)
+  - Rating (1–5 stars)
+- Store all inputs, outputs, and feedback in a local SQLite database.
+
+### 5. Model Training
+- Script to retrain the model on existing logs (manual or scheduled).
+- Lightweight ML model (e.g., logistic regression, decision tree).
+- Serialize model with `joblib` and use it for future scoring.
+
+---
+
+## Stretch Features
+
+- “Spin Again” button for new suggestion from same mood input.
+- Local history & favorite tracking.
+- Time-of-day or day-of-week pattern learning.
+- Mood-based playlists or collections.
+- Sync with Trakt.tv or Letterboxd for additional metadata.
+
+---
+
+## Technical Stack
+
+### Frontend
+- HTML/CSS/JS or React (lightweight SPA)
+- Mood input form + suggestion view + feedback form
+
+### Backend
+- Python (Flask or FastAPI)
+- SQLite for persistent data storage
+- Plex API integration (via `plexapi`)
+- ML via `scikit-learn`
+
+### ML Model
+- Input: Mood + media metadata
+- Output: Likelihood of user enjoying the content
+- Training: Based on logged feedback data
+- Model Type: Logistic Regression or Decision Tree
+- Storage: `model.pkl` via `joblib`
+
+### Docker
+- Single container with both frontend/backend (MVP)
+- Optional split via Docker Compose for scalability
+- Port: `localhost:5000`
+
+---
+
+## API Endpoints
+
+### `GET /recommend`
+- Input: Mood vector from frontend
+- Output: Suggested media title(s) with metadata
+
+### `POST /feedback`
+- Input: Plex ID, mood, feedback (completion, rating, etc.)
+- Output: 200 OK
+
+### `POST /train`
+- Retrain ML model using feedback log
+
+---
+
+## Milestones
+
+| Milestone                        | Description                              | Target Date |
+|----------------------------------|------------------------------------------|-------------|
+| Project Scaffolding              | Create repo, initial UI/backend structure | Week 1      |
+| Plex Metadata Import             | Connect to Plex and pull data            | Week 1      |
+| Mood-Based Filtering MVP         | Implement simple rule-based suggestions  | Week 2      |
+| Feedback Collection & Logging    | UI + DB + feedback endpoints             | Week 2      |
+| ML Model Training & Prediction   | Create initial model + scoring logic     | Week 3      |
+| Dockerization                    | Package into a single local container    | Week 3      |
+| UI Polish & Retrain Button       | Improve UX and enable manual retraining  | Week 4      |
+
+---
+
+## Success Criteria
+
+- Functional app runs fully inside Docker and pulls from Plex.
+- User can answer mood questions and receive a recommendation.
+- Feedback is collected and stored with each recommendation.
+- Model retrains and improves recommendation quality over time.
+- MVP usable on a local network without needing cloud hosting.
