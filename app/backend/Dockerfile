@@ -28,4 +28,4 @@ ENV FLASK_ENV=production \
 EXPOSE 8000
 
 # Start with Gunicorn after waiting for Postgres
-CMD ["/wait-for-it.sh", "db:5432", "--", "gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "app.backend.app:create_app"] 
+CMD ["/wait-for-it.sh", "db:5432", "--", "gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "app:create_app()"] 

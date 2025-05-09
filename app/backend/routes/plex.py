@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session
-from app.backend.plex_client import PlexClient
-from app.backend.errors import AppError
+from plex_client import PlexClient
+from errors import AppError
 
 plex_bp = Blueprint('plex', __name__)
 

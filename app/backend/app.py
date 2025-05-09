@@ -5,9 +5,10 @@ from flask import Flask, send_from_directory
 import logging
 
 def create_app():
-    from app.backend.config import DevelopmentConfig, TestingConfig, ProductionConfig, Config
+    from config import DevelopmentConfig, TestingConfig, ProductionConfig, Config
     logging.basicConfig(level=getattr(logging, getattr(Config, 'LOG_LEVEL', 'INFO'), logging.INFO))
     app = Flask(__name__)
+    app.secret_key = os.environ.get('SECRET_KEY', 'fallback-secret-key')
 
     # Select config class based on FLASK_ENV
     env = os.environ.get('FLASK_ENV', 'development')
@@ -20,17 +21,17 @@ def create_app():
 
     # --- Auto-init DB ---
     try:
-        from app.backend.database import init_db
+        from database import init_db
         init_db()
         print("[DEBUG] Database initialized (auto-init on app startup)")
     except Exception as e:
         print(f"[ERROR] Database initialization failed: {e}")
 
     # Import and register blueprints
-    from app.backend.routes.recommend import recommend_bp
-    from app.backend.routes.feedback import feedback_bp
-    from app.backend.routes.train import train_bp
-    from app.backend.routes.plex import plex_bp
+    from routes.recommend import recommend_bp
+    from routes.feedback import feedback_bp
+    from routes.train import train_bp
+    from routes.plex import plex_bp
     app.register_blueprint(recommend_bp)
     print("[DEBUG] Registered blueprint: recommend_bp")
     app.register_blueprint(feedback_bp)
@@ -41,7 +42,7 @@ def create_app():
     print("[DEBUG] Registered blueprint: plex_bp")
 
     # Register error handlers
-    from app.backend.errors import register_error_handlers
+    from errors import register_error_handlers
     register_error_handlers(app)
 
     # Debug test route

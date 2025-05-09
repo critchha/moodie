@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:20-slim
+FROM node:20
 
 WORKDIR /app
 
@@ -9,10 +9,14 @@ RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt
 # Install dependencies
 COPY package.json ./
 COPY package-lock.json ./
-RUN npm ci --omit=dev
+RUN rm -rf node_modules
+RUN npm ci
 
 # Copy frontend code
 COPY . .
+
+# Debug: check that tailwindcss is installed
+RUN ls -la node_modules && npm list tailwindcss && cat package.json
 
 # Build Next.js app
 RUN npm run build

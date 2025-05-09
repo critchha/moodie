@@ -1,9 +1,9 @@
 import threading
 import time
 import logging
-from app.backend.plex_client import PlexClient
-from app.backend.database import get_session, sync_plex_metadata
-from app.backend.config import Config
+from plex_client import PlexClient
+from database import get_session, sync_plex_metadata
+from config import Config
 
 logging.basicConfig(level=getattr(logging, Config.LOG_LEVEL, logging.INFO))
 logger = logging.getLogger(__name__)

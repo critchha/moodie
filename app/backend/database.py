@@ -5,6 +5,7 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 import logging
+from config import Config
 
 Base = declarative_base()
 
@@ -118,7 +119,6 @@ def check_integrity(session):
 def get_engine(database_url=None):
     """Create a SQLAlchemy engine using the provided or default database URL."""
     if database_url is None:
-        from app.backend.config import Config
         database_url = Config.SQLALCHEMY_DATABASE_URI
     try:
         engine = create_engine(database_url, echo=False, future=True)

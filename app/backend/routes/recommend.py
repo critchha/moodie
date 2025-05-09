@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify, session, current_app, url_for
-from app.backend.plex_client import PlexClient
-from app.backend.errors import AppError
+from plex_client import PlexClient
+from errors import AppError
 import random
 from datetime import datetime
 import logging
-from app.backend.database import get_session, Media, Recommendation, Feedback, add_record
+from database import get_session, Media, Recommendation, Feedback, add_record
 from sqlalchemy.orm.exc import NoResultFound
 import threading
 import time

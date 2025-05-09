@@ -1,6 +1,6 @@
 import os
 from cryptography.fernet import Fernet, InvalidToken
-from app.backend.config import Config
+from config import Config
 
 class CredentialStore:
     """Encrypted file-based credential storage using Fernet symmetric encryption."""
