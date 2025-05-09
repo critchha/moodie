@@ -19,6 +19,7 @@ services:
   backend:
     build:
       context: ./app/backend
+    platform: linux/amd64
     restart: unless-stopped
     env_file:
       - ./app/backend/.env
@@ -38,6 +39,7 @@ services:
   frontend:
     build:
       context: ./moodie-next
+    platform: linux/amd64
     restart: unless-stopped
     env_file:
       - ./moodie-next/.env
