@@ -4,4 +4,4 @@ feedback_bp = Blueprint('feedback', __name__)
 
 @feedback_bp.route('/api/feedback', methods=['POST'])
 def feedback():
-    return jsonify({'status': 'not implemented'})
+    return jsonify({'error': 'Not implemented'}), 501

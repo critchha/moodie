@@ -1,6 +1,6 @@
 # Task ID: 4
 # Title: Develop Backend API with FastAPI
-# Status: done
+# Status: pending
 # Dependencies: 2, 3
 # Priority: high
 # Description: Create a RESTful API using FastAPI to handle recommendation requests, user feedback, and model training.

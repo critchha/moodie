@@ -1,16 +1,64 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  moodie:
-    build: .
-    container_name: moodie-app
-    ports:
-      - "8000:8000"
-    environment:
-      - FLASK_ENV=development
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ./db/.env
     volumes:
-      - .:/app
-    # Uncomment the following line if you want to auto-restart the container on failure
-    # restart: unless-stopped 
+      - db_data:/var/lib/postgresql/data
+    expose:
+      - 5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./app/backend
+    restart: unless-stopped
+    env_file:
+      - ./app/backend/.env
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - 8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/plex/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./moodie-next
+    restart: unless-stopped
+    env_file:
+      - ./moodie-next/.env
+    depends_on:
+      - backend
+    expose:
+      - 3000
+
+  # Optional: Nginx reverse proxy for SSL/static/routing
+  # nginx:
+  #   image: nginx:alpine
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #   depends_on:
+  #     - frontend
+  #     - backend
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   environment:
+  #     - NGINX_HOST=yourdomain.com
+  #     - NGINX_PORT=80
+
+volumes:
+  db_data: 

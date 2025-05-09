@@ -4,7 +4,7 @@ from app.backend.errors import AppError
 
 plex_bp = Blueprint('plex', __name__)
 
-@plex_bp.route('/api/plex/connect', methods=['POST'])
+@plex_bp.route('/api/v1/plex/connect', methods=['POST'], strict_slashes=False)
 def plex_connect():
     data = request.get_json()
     token = data.get('token')
@@ -23,7 +23,7 @@ def plex_connect():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@plex_bp.route('/api/plex/status', methods=['GET'])
+@plex_bp.route('/api/v1/plex/status', methods=['GET'], strict_slashes=False)
 def plex_status():
     token = session.get('plex_token')
     server_name = session.get('plex_server_name')

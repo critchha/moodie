@@ -1,10 +1,14 @@
 import os
 from cryptography.fernet import Fernet, InvalidToken
+from app.backend.config import Config
 
 class CredentialStore:
     """Encrypted file-based credential storage using Fernet symmetric encryption."""
-    def __init__(self, filepath='credentials.enc', key_env_var='CREDENTIAL_STORE_KEY'):
-        self.filepath = filepath
+    def __init__(self, filepath=None, key_env_var='CREDENTIAL_STORE_KEY'):
+        if filepath is None:
+            self.filepath = getattr(Config, 'CREDENTIAL_STORE_PATH', 'credentials.enc')
+        else:
+            self.filepath = filepath
         self.key = os.environ.get(key_env_var)
         if not self.key:
             raise ValueError(f"Encryption key not found in environment variable: {key_env_var}")

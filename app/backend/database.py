@@ -74,7 +74,7 @@ def add_record(session, record):
         return record
     except Exception as e:
         session.rollback()
-        print(f"Error adding record: {e}")
+        logging.error(f"Error adding record: {e}")
         raise
 
 def get_record_by_id(session, model, record_id):
@@ -93,7 +93,7 @@ def update_record(session, record):
         return record
     except Exception as e:
         session.rollback()
-        print(f"Error updating record: {e}")
+        logging.error(f"Error updating record: {e}")
         raise
 
 def delete_record(session, record):
@@ -103,17 +103,17 @@ def delete_record(session, record):
         session.commit()
     except Exception as e:
         session.rollback()
-        print(f"Error deleting record: {e}")
+        logging.error(f"Error deleting record: {e}")
         raise
 
 # (Optional) Stubs for future migration, backup, and integrity checks
 def backup_database(engine=None, backup_path='backup.db'):
     """Stub for backing up the database (to be implemented)."""
-    print(f"Backup not implemented. Would back up to {backup_path}.")
+    logging.info(f"Backup not implemented. Would back up to {backup_path}.")
 
 def check_integrity(session):
     """Stub for checking database integrity (to be implemented)."""
-    print("Integrity check not implemented.")
+    logging.info("Integrity check not implemented.")
 
 def get_engine(database_url=None):
     """Create a SQLAlchemy engine using the provided or default database URL."""
@@ -133,9 +133,9 @@ def init_db(engine=None):
         engine = get_engine()
     try:
         Base.metadata.create_all(engine)
-        print("Database tables created successfully.")
+        logging.info("Database tables created successfully.")
     except SQLAlchemyError as e:
-        print(f"Error initializing database: {e}")
+        logging.error(f"Error initializing database: {e}")
         raise
 
 def reset_db(engine=None):
@@ -145,9 +145,9 @@ def reset_db(engine=None):
     try:
         Base.metadata.drop_all(engine)
         Base.metadata.create_all(engine)
-        print("Database reset successfully.")
+        logging.info("Database reset successfully.")
     except SQLAlchemyError as e:
-        print(f"Error resetting database: {e}")
+        logging.error(f"Error resetting database: {e}")
         raise
 
 def sync_plex_metadata(session, media_list, media_type='movie'):
@@ -159,32 +159,32 @@ def sync_plex_metadata(session, media_list, media_type='movie'):
     """
     logger = logging.getLogger(__name__)
     try:
-        # Build a set of current Plex IDs
-        plex_ids = set(item['plex_id'] for item in media_list if item.get('plex_id'))
-        # Query all existing media of this type
-        db_media = session.query(Media).filter_by(type=media_type).all()
-        db_ids = set(m.plex_id for m in db_media)
-        # Upsert each item
-        for item in media_list:
-            if not item.get('plex_id'):
-                continue
-            media = session.query(Media).filter_by(plex_id=item['plex_id']).first()
-            if media:
-                # Update existing
-                for k, v in item.items():
-                    setattr(media, k, v)
-                logger.info(f"Updated {media_type}: {item['title']}")
-            else:
-                # Insert new
-                media = Media(**item)
-                session.add(media)
-                logger.info(f"Inserted {media_type}: {item['title']}")
-        # Remove DB records not in Plex
-        for media in db_media:
-            if media.plex_id not in plex_ids:
-                logger.info(f"Deleting {media_type} not found in Plex: {media.title}")
-                session.delete(media)
-        session.commit()
+        with session.begin():
+            # Build a set of current Plex IDs
+            plex_ids = set(item['plex_id'] for item in media_list if item.get('plex_id'))
+            # Query all existing media of this type
+            db_media = session.query(Media).filter_by(type=media_type).all()
+            db_ids = set(m.plex_id for m in db_media)
+            # Upsert each item
+            for item in media_list:
+                if not item.get('plex_id'):
+                    continue
+                media = session.query(Media).filter_by(plex_id=item['plex_id']).first()
+                if media:
+                    # Update existing
+                    for k, v in item.items():
+                        setattr(media, k, v)
+                    logger.info(f"Updated {media_type}: {item['title']}")
+                else:
+                    # Insert new
+                    media = Media(**item)
+                    session.add(media)
+                    logger.info(f"Inserted {media_type}: {item['title']}")
+            # Remove DB records not in Plex
+            for media in db_media:
+                if media.plex_id not in plex_ids:
+                    logger.info(f"Deleting {media_type} not found in Plex: {media.title}")
+                    session.delete(media)
         logger.info(f"Sync complete for {media_type}s. {len(media_list)} items processed.")
     except Exception as e:
         session.rollback()

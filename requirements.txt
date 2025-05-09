@@ -2,4 +2,6 @@ Flask
 SQLAlchemy
 python-dotenv
 plexapi
-cryptography 
+cryptography
+requests
+gunicorn 

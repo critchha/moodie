@@ -1,0 +1,9 @@
+node_modules
+build
+dist
+coverage
+.next
+out
+public
+*.lock
+.env* 
