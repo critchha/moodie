@@ -32,6 +32,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    ports:
+      - "8000:8000"
 
   frontend:
     build:
@@ -43,6 +45,8 @@ services:
       - backend
     expose:
       - 3000
+    ports:
+      - "3000:3000"
 
   # Optional: Nginx reverse proxy for SSL/static/routing
   # nginx:
