@@ -4,6 +4,10 @@ services:
     restart: unless-stopped
     env_file:
       - ./db/.env
+    environment:
+      - POSTGRES_DB=plexapp
+      - POSTGRES_USER=plexuser
+      - POSTGRES_PASSWORD=plexpass
     volumes:
       - db_data:/var/lib/postgresql/data
     expose:
@@ -43,6 +47,7 @@ services:
     restart: unless-stopped
     env_file:
       - ./moodie-next/.env
+    # Ensure NEXT_PUBLIC_PLEX_TOKEN is set in moodie-next/.env for static Plex token support
     depends_on:
       - backend
     expose:
