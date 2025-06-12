@@ -47,6 +47,7 @@ struct MainAppView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var recommendations: [MediaItem] = []
+    @State private var recommendationsToShow: Int = 3
     @State private var feedback: [String: FeedbackType] = [:] // Feedback keyed by MediaItem id
     @State private var mediaLibrary: [MediaItem] = []
     @State private var isLibraryLoading = false
@@ -96,7 +97,7 @@ struct MainAppView: View {
                     .disabled(isLoading)
                 }
                 RecommendationsSection(
-                    recommendations: recommendations,
+                    recommendations: Array(recommendations.prefix(recommendationsToShow)),
                     feedback: feedback,
                     userProfile: userProfile,
                     onFeedback: { rec, type in
@@ -159,6 +160,12 @@ struct MainAppView: View {
                     isLoading: isLoading,
                     errorMessage: errorMessage
                 )
+                if recommendationsToShow < recommendations.count {
+                    Button("Show More") {
+                        recommendationsToShow += 3
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                }
             }
             .navigationTitle("Moodie")
             .onAppear {
@@ -200,6 +207,7 @@ struct MainAppView: View {
         isLoading = true
         errorMessage = nil
         recommendations = []
+        recommendationsToShow = 3 // Reset to 3 on new fetch
         // Use userProfile if available, otherwise fall back to UI state
         let userPrefs: UserPreferences
         var feedbackMap: [String: String]? = nil
@@ -237,7 +245,8 @@ struct MainAppView: View {
                 disliked: disliked,
                 surprise: userPrefs.surprise
             )
-            recommendations = Array(allRecs.prefix(3))
+            recommendations = allRecs
+            recommendationsToShow = 3 // Reset to 3 on new fetch
         }
     }
 }

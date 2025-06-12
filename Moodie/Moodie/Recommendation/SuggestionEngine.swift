@@ -8,7 +8,26 @@ func getSuggestions(
     disliked: [String: Set<String>]? = nil,
     surprise: Bool = false
 ) -> [MediaItem] {
-    var scored: [(item: MediaItem, score: Int)] = media.map {
+    // Pre-filter by time and format
+    let filtered: [MediaItem] = media.filter { item in
+        // Time filter
+        let isShortEnough: Bool = {
+            if user.time == "under_1h" {
+                return item.duration <= 65 // allow a small buffer for short films
+            }
+            // Add more time filters if needed
+            return true
+        }()
+        // Format filter
+        let isCorrectFormat: Bool = {
+            if user.format == "any" { return true }
+            if user.format == "movie" { return item.type == "movie" }
+            if user.format == "show" { return item.type == "show" }
+            return true
+        }()
+        return isShortEnough && isCorrectFormat
+    }
+    var scored: [(item: MediaItem, score: Int)] = filtered.map {
         ($0, scoreItem($0, user: user, feedbackMap: feedbackMap, liked: liked, disliked: disliked, surprise: surprise))
     }
     scored = scored.filter { $0.score > 0 }
@@ -17,7 +36,7 @@ func getSuggestions(
     // Comfort Mode: prepend top comfort items
     var recommendations: [MediaItem]
     if user.comfortMode {
-        let comfortItems = media.filter { $0.viewCount >= 3 }
+        let comfortItems = filtered.filter { $0.viewCount >= 3 }
             .sorted { $0.viewCount > $1.viewCount }
             .prefix(3)
         let comfortIds = Set(comfortItems.map { $0.id })
@@ -28,7 +47,7 @@ func getSuggestions(
     
     // Fallback: if no recommendations, use most-watched
     if recommendations.isEmpty {
-        recommendations = media.sorted { $0.viewCount > $1.viewCount }.prefix(3).map { $0 }
+        recommendations = filtered.sorted { $0.viewCount > $1.viewCount }.prefix(3).map { $0 }
     }
     
     return recommendations

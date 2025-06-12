@@ -233,11 +233,12 @@ class PlexMediaItemsXMLDelegate: NSObject, XMLParserDelegate {
     private var posterPrintCount = 0
     
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String] = [:]) {
-        if elementName == "Video" || elementName == "Movie" || elementName == "Episode" {
+        // Add support for Directory elements with type="show" (TV Shows)
+        if elementName == "Video" || elementName == "Movie" || elementName == "Episode" || (elementName == "Directory" && attributeDict["type"] == "show") {
             let id = attributeDict["ratingKey"] ?? UUID().uuidString
             let title = attributeDict["title"] ?? "Untitled"
             let year = Int(attributeDict["year"] ?? "")
-            let type = attributeDict["type"] ?? "movie"
+            let type = attributeDict["type"] ?? (elementName == "Directory" ? "show" : "movie")
             let genres = (attributeDict["genre"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
             let directors = (attributeDict["director"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             let cast = (attributeDict["role"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
