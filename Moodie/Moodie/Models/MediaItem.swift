@@ -12,4 +12,6 @@ struct MediaItem: Identifiable, Codable, Hashable {
     let viewCount: Int
     let summary: String
     let posterURL: String?
+    let seriesTitle: String? // The show/series name for episodes (optional)
+    var lastRecommended: Date? // The last time this item was recommended (optional)
 } 

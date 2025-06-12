@@ -171,7 +171,8 @@ class PlexXMLParser {
                     duration: item.duration,
                     viewCount: item.viewCount,
                     summary: item.summary,
-                    posterURL: urlWithToken
+                    posterURL: urlWithToken,
+                    seriesTitle: item.seriesTitle
                 )
                 return newItem
             }
@@ -231,40 +232,66 @@ class PlexMediaItemsXMLDelegate: NSObject, XMLParserDelegate {
     private var currentAttributes: [String: String] = [:]
     var baseURL: String? = nil
     private var posterPrintCount = 0
-    
+
+    // For collecting genres for the current item
+    private var currentGenres: [String] = []
+    private var parsingMediaItem = false
+    private var currentMediaItemAttributes: [String: String] = [:]
+
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String] = [:]) {
-        // Add support for Directory elements with type="show" (TV Shows)
         if elementName == "Video" || elementName == "Movie" || elementName == "Episode" || (elementName == "Directory" && attributeDict["type"] == "show") {
-            let id = attributeDict["ratingKey"] ?? UUID().uuidString
-            let title = attributeDict["title"] ?? "Untitled"
-            let year = Int(attributeDict["year"] ?? "")
-            let type = attributeDict["type"] ?? (elementName == "Directory" ? "show" : "movie")
-            let genres = (attributeDict["genre"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
-            let directors = (attributeDict["director"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            let cast = (attributeDict["role"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            let duration = Int((attributeDict["duration"] ?? "0")) ?? 0
-            let minutes = duration > 0 ? duration / 60000 : 0 // Plex duration is ms
-            let viewCount = Int(attributeDict["viewCount"] ?? "0") ?? 0
-            let summary = attributeDict["summary"] ?? ""
-            let posterPath = attributeDict["thumb"]
-            let posterURL = (baseURL != nil && posterPath != nil) ? "\(baseURL!)\(posterPath!)?X-Plex-Token=\(attributeDict["token"] ?? "")" : nil
-            if let posterURL = posterURL, posterPrintCount < 5 {
-                print("[DEBUG] Plex posterURL: \(posterURL)")
-                posterPrintCount += 1
-            }
+            parsingMediaItem = true
+            currentMediaItemAttributes = attributeDict
+            currentGenres = []
+        } else if parsingMediaItem && elementName == "Genre", let tag = attributeDict["tag"] {
+            currentGenres.append(tag.lowercased().trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+    }
+
+    func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
+        if parsingMediaItem && (elementName == "Video" || elementName == "Movie" || elementName == "Episode" || (elementName == "Directory" && currentMediaItemAttributes["type"] == "show")) {
+            let attr = currentMediaItemAttributes
+            let id = attr["ratingKey"] ?? UUID().uuidString
+            let title = attr["title"] ?? "Untitled"
+            let year = Int(attr["year"] ?? "")
+            let type = attr["type"] ?? (elementName == "Directory" ? "show" : "movie")
+            let directors = (attr["director"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            let cast = (attr["role"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            let duration = Int((attr["duration"] ?? "0")) ?? 0
+            let minutes = duration > 0 ? duration / 60000 : 0
+            let viewCount = Int(attr["viewCount"] ?? "0") ?? 0
+            let summary = attr["summary"] ?? ""
+            let posterPath = attr["thumb"]
+            let posterURL = (baseURL != nil && posterPath != nil) ? "\(baseURL!)\(posterPath!)?X-Plex-Token=\(attr["token"] ?? "")" : nil
+            // Parse seriesTitle for episodes/shows
+            let seriesTitle: String? = {
+                if type == "show" {
+                    return title
+                } else if let grandparent = attr["grandparentTitle"] {
+                    return grandparent
+                } else if let parent = attr["parentTitle"] {
+                    return parent
+                } else {
+                    return nil
+                }
+            }()
             items.append(MediaItem(
                 id: id,
                 title: title,
                 year: year,
                 type: type,
-                genres: genres,
+                genres: currentGenres,
                 directors: directors,
                 cast: cast,
                 duration: minutes,
                 viewCount: viewCount,
                 summary: summary,
-                posterURL: posterURL
+                posterURL: posterURL,
+                seriesTitle: seriesTitle
             ))
+            parsingMediaItem = false
+            currentMediaItemAttributes = [:]
+            currentGenres = []
         }
     }
 } 
