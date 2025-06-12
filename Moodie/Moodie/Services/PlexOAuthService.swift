@@ -124,6 +124,13 @@ class PlexOAuthService: NSObject {
         }
         poll()
     }
+
+    var isAuthenticated: Bool {
+        if let token = KeychainService.shared.getToken() {
+            return !token.isEmpty
+        }
+        return false
+    }
 }
 
 extension PlexOAuthService: ASWebAuthenticationPresentationContextProviding {

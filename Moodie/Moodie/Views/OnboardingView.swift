@@ -37,18 +37,16 @@ struct OnboardingView: View {
                         .foregroundColor(.white)
                         .cornerRadius(12)
                     }
-                    // Temporary button for UI development/testing
-                    Button(action: { isLoggedIn = true }) {
-                        Text("Skip to App (Dev Only)")
-                            .font(.subheadline)
-                            .padding(8)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(8)
-                    }
                 }
                 Spacer()
             }
             .padding()
+            .onAppear {
+                // If already authenticated, skip sign-in
+                if PlexOAuthService.shared.isAuthenticated {
+                    isLoggedIn = true
+                }
+            }
         }
     }
     
@@ -88,6 +86,10 @@ struct OnboardingFlowView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 24) {
+                Text("Swipe down to skip onboarding")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 8)
                 if step == 0 {
                     Text("Welcome! Let's get to know your tastes.")
                         .font(.title2)
