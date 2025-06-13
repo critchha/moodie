@@ -262,7 +262,7 @@ class PlexMediaItemsXMLDelegate: NSObject, XMLParserDelegate {
             let viewCount = Int(attr["viewCount"] ?? "0") ?? 0
             let summary = attr["summary"] ?? ""
             let posterPath = attr["thumb"]
-            let posterURL = (baseURL != nil && posterPath != nil) ? "\(baseURL!)\(posterPath!)?X-Plex-Token=\(attr["token"] ?? "")" : nil
+            let posterURL = (baseURL != nil && posterPath != nil) ? "\(baseURL!)\(posterPath!)" : nil
             // Parse seriesTitle for episodes/shows
             let seriesTitle: String? = {
                 if type == "show" {

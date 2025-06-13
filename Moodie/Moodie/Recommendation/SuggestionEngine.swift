@@ -1,5 +1,15 @@
 import Foundation
 
+struct BingeSuggestions {
+    let movies: [MediaItem]
+    let shows: [MediaItem]
+}
+
+enum SuggestionResult {
+    case normal([MediaItem])
+    case binge(BingeSuggestions)
+}
+
 func getSuggestions(
     media: [MediaItem],
     user: UserPreferences,
@@ -7,12 +17,7 @@ func getSuggestions(
     liked: [String: Set<String>]? = nil,
     disliked: [String: Set<String>]? = nil,
     surprise: Bool = false
-) -> [MediaItem] {
-    // DEBUG: Print all media items before filtering
-    print("[DEBUG] All media items (", media.count, "):")
-    for item in media {
-        print("[DEBUG] - \(item.title) | type: \(item.type) | genres: \(item.genres) | duration: \(item.duration) min")
-    }
+) -> SuggestionResult {
     // Enhanced pre-filter by time, format, genre, and mood
     let filtered: [MediaItem] = media.filter { item in
         // Enhanced time filter for TV shows
@@ -54,11 +59,6 @@ func getSuggestions(
         }
         return true
     }
-    // DEBUG: Print filtered items
-    print("[DEBUG] Filtered items (", filtered.count, "):")
-    for item in filtered {
-        print("[DEBUG] - \(item.title) | type: \(item.type) | genres: \(item.genres) | duration: \(item.duration) min")
-    }
     // Score and sort
     var scored: [(item: MediaItem, score: Int)] = filtered.map {
         var score = scoreItem($0, user: user, feedbackMap: feedbackMap, liked: liked, disliked: disliked, surprise: surprise)
@@ -71,6 +71,76 @@ func getSuggestions(
     scored = scored.filter { $0.score > -1000 } // Remove items penalized for wrong format
     scored.sort { $0.score > $1.score }
 
+    // --- Binge Worthy Mode ---
+    if user.time == "open" {
+        // Movies: group by seriesTitle, prioritize franchises with >1 movie
+        let movieItems = scored.map { $0.item }.filter { $0.type == "movie" }
+        let movieFranchises = Dictionary(grouping: movieItems, by: { $0.seriesTitle?.lowercased() ?? $0.title.lowercased() })
+        let franchiseMovies = movieFranchises.values.filter { $0.count > 1 }
+        // Pick the highest scored movie from each franchise
+        var franchiseMoviePicks: [MediaItem] = []
+        for group in franchiseMovies {
+            if let best = group.max(by: { a, b in
+                let sa = scored.first(where: { $0.item.id == a.id })?.score ?? 0
+                let sb = scored.first(where: { $0.item.id == b.id })?.score ?? 0
+                return sa < sb
+            }) {
+                franchiseMoviePicks.append(best)
+            }
+        }
+        // Sort by score and pick top 3
+        var topFranchiseMovies = franchiseMoviePicks.sorted { a, b in
+            let sa = scored.first(where: { $0.item.id == a.id })?.score ?? 0
+            let sb = scored.first(where: { $0.item.id == b.id })?.score ?? 0
+            return sa > sb
+        }
+        // If fewer than 3, fill with top standalone movies
+        if topFranchiseMovies.count < 3 {
+            let franchiseIds = Set(topFranchiseMovies.map { $0.id })
+            let standaloneMovies = movieItems.filter { !franchiseIds.contains($0.id) }
+            let topStandalone = standaloneMovies.sorted { a, b in
+                let sa = scored.first(where: { $0.item.id == a.id })?.score ?? 0
+                let sb = scored.first(where: { $0.item.id == b.id })?.score ?? 0
+                return sa > sb
+            }
+            let needed = 3 - topFranchiseMovies.count
+            if !topStandalone.isEmpty {
+                topFranchiseMovies.append(contentsOf: topStandalone.prefix(needed))
+            }
+        }
+        let topMovies = Array(topFranchiseMovies.prefix(3))
+
+        // TV Shows: one per show (highest scored episode per show)
+        let showItems = scored.map { $0.item }.filter { $0.type == "show" }
+        var seenShows = Set<String>()
+        var topShows: [MediaItem] = []
+        for (item, _) in scored where item.type == "show" {
+            let showKey = item.seriesTitle?.lowercased() ?? item.title.lowercased()
+            if seenShows.contains(showKey) { continue }
+            seenShows.insert(showKey)
+            topShows.append(item)
+            if topShows.count >= 3 { break }
+        }
+        if topShows.count < 3 {
+        }
+
+        // Update lastRecommended for the top results
+        let now = Date()
+        let updatedMovies = topMovies.map { item in
+            var mutableItem = item
+            mutableItem.lastRecommended = now
+            return mutableItem
+        }
+        let updatedShows = topShows.map { item in
+            var mutableItem = item
+            mutableItem.lastRecommended = now
+            return mutableItem
+        }
+
+        return .binge(BingeSuggestions(movies: Array(updatedMovies), shows: Array(updatedShows)))
+    }
+
+    // --- Normal Mode ---
     // Comfort Mode: prepend top comfort items
     var recommendations: [MediaItem]
     if user.comfortMode {
@@ -92,12 +162,16 @@ func getSuggestions(
     var seenShows = Set<String>()
     var diverse: [MediaItem] = []
     for (item, score) in scored {
-        if user.format == "show" || user.format == "any" {
-            if item.type == "show" {
-                let showKey = item.seriesTitle?.lowercased() ?? item.title.lowercased()
-                if seenShows.contains(showKey) { continue }
-                seenShows.insert(showKey)
-            }
+        if user.format == "movie" && item.type != "movie" {
+            continue // skip non-movies if movie is selected
+        }
+        if user.format == "show" && item.type != "show" {
+            continue // skip non-shows if show is selected
+        }
+        if (user.format == "show" || user.format == "any") && item.type == "show" {
+            let showKey = item.seriesTitle?.lowercased() ?? item.title.lowercased()
+            if seenShows.contains(showKey) { continue }
+            seenShows.insert(showKey)
         }
         diverse.append(item)
     }
@@ -113,20 +187,5 @@ func getSuggestions(
         return mutableItem
     }
 
-    // DEBUG: Print final recommendations and their scores
-    print("[DEBUG] Final recommendations (", updatedTopResults.count, "):")
-    for item in updatedTopResults {
-        if let score = scored.first(where: { $0.item.id == item.id })?.score {
-            print("[DEBUG] - \(item.title) | type: \(item.type) | score: \(score)")
-        }
-    }
-
-    // DEBUG: Print top 10 scored movies for score distribution
-    print("[DEBUG] Top 10 scored movies:")
-    let top10 = scored.prefix(10)
-    for (item, score) in top10 {
-        print("[DEBUG] - \(item.title) | type: \(item.type) | score: \(score)")
-    }
-
-    return updatedTopResults
+    return .normal(updatedTopResults)
 } 

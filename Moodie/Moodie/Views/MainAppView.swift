@@ -46,7 +46,7 @@ struct MainAppView: View {
     @State private var surprisePick = false
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var recommendations: [MediaItem] = []
+    @State private var recommendations: SuggestionResult? = nil
     @State private var recommendationsToShow: Int = 3
     @State private var feedback: [String: FeedbackType] = [:] // Feedback keyed by MediaItem id
     @State private var mediaLibrary: [MediaItem] = []
@@ -54,6 +54,7 @@ struct MainAppView: View {
     @State private var libraryError: String?
     @State private var showOnboarding = false
     @State private var userProfile: UserProfile? = nil
+    @State private var rejectedRecommendationIDs: Set<String> = []
     
     var timePickerOptions: [PickerOption] {
         timeOptions.map { PickerOption(label: $0.label, value: $0.value) }
@@ -96,75 +97,220 @@ struct MainAppView: View {
                     }
                     .disabled(isLoading)
                 }
-                RecommendationsSection(
-                    recommendations: Array(recommendations.prefix(recommendationsToShow)),
-                    feedback: feedback,
-                    userProfile: userProfile,
-                    onFeedback: { rec, type in
-                        feedback[rec.id] = type
-                        if var profile = userProfile {
-                            profile.feedback.removeAll { $0.mediaId == rec.id }
-                            let newFeedback = Feedback(
-                                mediaId: rec.id,
-                                rating: type == .up ? 5 : 1,
-                                wouldWatchAgain: type == .up,
-                                watchedToCompletion: profile.feedback.first(where: { $0.mediaId == rec.id })?.watchedToCompletion ?? false
-                            )
-                            profile.feedback.append(newFeedback)
-                            userProfile = profile
-                            UserProfileStore.shared.save(profile)
-                        }
-                    },
-                    onStarRating: { rec, rating in
-                        if var profile = userProfile {
-                            if let idx = profile.feedback.firstIndex(where: { $0.mediaId == rec.id }) {
-                                profile.feedback[idx].rating = rating
-                            } else {
-                                let newFeedback = Feedback(
-                                    mediaId: rec.id,
-                                    rating: rating,
-                                    wouldWatchAgain: rating >= 4,
-                                    watchedToCompletion: false
-                                )
-                                profile.feedback.append(newFeedback)
+                if let recs = recommendations {
+                    switch recs {
+                    case .normal(let items):
+                        let visibleRecs = items.filter { !rejectedRecommendationIDs.contains($0.id) }
+                        RecommendationsSection(
+                            title: "Recommendations",
+                            recommendations: Array(visibleRecs.prefix(recommendationsToShow)),
+                            feedback: feedback,
+                            userProfile: userProfile,
+                            onFeedback: { rec, type in
+                                feedback[rec.id] = type
+                                if type == .down {
+                                    rejectedRecommendationIDs.insert(rec.id)
+                                    // If there are more recommendations, show the next one
+                                    if visibleRecs.count > recommendationsToShow {
+                                        recommendationsToShow += 1
+                                    }
+                                }
+                                if var profile = userProfile {
+                                    profile.feedback.removeAll { $0.mediaId == rec.id }
+                                    let newFeedback = Feedback(
+                                        mediaId: rec.id,
+                                        rating: type == .up ? 5 : 1,
+                                        wouldWatchAgain: type == .up,
+                                        watchedToCompletion: profile.feedback.first(where: { $0.mediaId == rec.id })?.watchedToCompletion ?? false
+                                    )
+                                    profile.feedback.append(newFeedback)
+                                    userProfile = profile
+                                    UserProfileStore.shared.save(profile)
+                                }
+                            },
+                            onStarRating: { rec, rating in
+                                if var profile = userProfile {
+                                    if let idx = profile.feedback.firstIndex(where: { $0.mediaId == rec.id }) {
+                                        profile.feedback[idx].rating = rating
+                                    } else {
+                                        let newFeedback = Feedback(
+                                            mediaId: rec.id,
+                                            rating: rating,
+                                            wouldWatchAgain: rating >= 4,
+                                            watchedToCompletion: false
+                                        )
+                                        profile.feedback.append(newFeedback)
+                                    }
+                                    userProfile = profile
+                                    UserProfileStore.shared.save(profile)
+                                }
+                            },
+                            onMarkWatched: { rec in
+                                if var profile = userProfile {
+                                    if let idx = profile.feedback.firstIndex(where: { $0.mediaId == rec.id }) {
+                                        profile.feedback[idx].watchedToCompletion = true
+                                    } else {
+                                        let newFeedback = Feedback(
+                                            mediaId: rec.id,
+                                            rating: 3,
+                                            wouldWatchAgain: false,
+                                            watchedToCompletion: true
+                                        )
+                                        profile.feedback.append(newFeedback)
+                                    }
+                                    userProfile = profile
+                                    UserProfileStore.shared.save(profile)
+                                }
+                            },
+                            onRemoveFeedback: { rec in
+                                if var profile = userProfile {
+                                    profile.feedback.removeAll { $0.mediaId == rec.id }
+                                    userProfile = profile
+                                    UserProfileStore.shared.save(profile)
+                                }
+                                feedback[rec.id] = nil
+                            },
+                            isLoading: isLoading,
+                            errorMessage: errorMessage
+                        )
+                        if recommendationsToShow < items.count {
+                            Button("Show More") {
+                                recommendationsToShow += 3
                             }
-                            userProfile = profile
-                            UserProfileStore.shared.save(profile)
+                            .frame(maxWidth: .infinity, alignment: .center)
                         }
-                    },
-                    onMarkWatched: { rec in
-                        if var profile = userProfile {
-                            if let idx = profile.feedback.firstIndex(where: { $0.mediaId == rec.id }) {
-                                profile.feedback[idx].watchedToCompletion = true
-                            } else {
-                                let newFeedback = Feedback(
-                                    mediaId: rec.id,
-                                    rating: 3,
-                                    wouldWatchAgain: false,
-                                    watchedToCompletion: true
-                                )
-                                profile.feedback.append(newFeedback)
-                            }
-                            userProfile = profile
-                            UserProfileStore.shared.save(profile)
-                        }
-                    },
-                    onRemoveFeedback: { rec in
-                        if var profile = userProfile {
-                            profile.feedback.removeAll { $0.mediaId == rec.id }
-                            userProfile = profile
-                            UserProfileStore.shared.save(profile)
-                        }
-                        feedback[rec.id] = nil
-                    },
-                    isLoading: isLoading,
-                    errorMessage: errorMessage
-                )
-                if recommendationsToShow < recommendations.count {
-                    Button("Show More") {
-                        recommendationsToShow += 3
+                    case .binge(let binge):
+                        RecommendationsSection(
+                            title: "Movies to Binge",
+                            recommendations: binge.movies,
+                            feedback: feedback,
+                            userProfile: userProfile,
+                            onFeedback: { rec, type in
+                                feedback[rec.id] = type
+                                if var profile = userProfile {
+                                    profile.feedback.removeAll { $0.mediaId == rec.id }
+                                    let newFeedback = Feedback(
+                                        mediaId: rec.id,
+                                        rating: type == .up ? 5 : 1,
+                                        wouldWatchAgain: type == .up,
+                                        watchedToCompletion: profile.feedback.first(where: { $0.mediaId == rec.id })?.watchedToCompletion ?? false
+                                    )
+                                    profile.feedback.append(newFeedback)
+                                    userProfile = profile
+                                    UserProfileStore.shared.save(profile)
+                                }
+                            },
+                            onStarRating: { rec, rating in
+                                if var profile = userProfile {
+                                    if let idx = profile.feedback.firstIndex(where: { $0.mediaId == rec.id }) {
+                                        profile.feedback[idx].rating = rating
+                                    } else {
+                                        let newFeedback = Feedback(
+                                            mediaId: rec.id,
+                                            rating: rating,
+                                            wouldWatchAgain: rating >= 4,
+                                            watchedToCompletion: false
+                                        )
+                                        profile.feedback.append(newFeedback)
+                                    }
+                                    userProfile = profile
+                                    UserProfileStore.shared.save(profile)
+                                }
+                            },
+                            onMarkWatched: { rec in
+                                if var profile = userProfile {
+                                    if let idx = profile.feedback.firstIndex(where: { $0.mediaId == rec.id }) {
+                                        profile.feedback[idx].watchedToCompletion = true
+                                    } else {
+                                        let newFeedback = Feedback(
+                                            mediaId: rec.id,
+                                            rating: 3,
+                                            wouldWatchAgain: false,
+                                            watchedToCompletion: true
+                                        )
+                                        profile.feedback.append(newFeedback)
+                                    }
+                                    userProfile = profile
+                                    UserProfileStore.shared.save(profile)
+                                }
+                            },
+                            onRemoveFeedback: { rec in
+                                if var profile = userProfile {
+                                    profile.feedback.removeAll { $0.mediaId == rec.id }
+                                    userProfile = profile
+                                    UserProfileStore.shared.save(profile)
+                                }
+                                feedback[rec.id] = nil
+                            },
+                            isLoading: isLoading,
+                            errorMessage: errorMessage
+                        )
+                        RecommendationsSection(
+                            title: "Series to Binge",
+                            recommendations: binge.shows,
+                            feedback: feedback,
+                            userProfile: userProfile,
+                            onFeedback: { rec, type in
+                                feedback[rec.id] = type
+                                if var profile = userProfile {
+                                    profile.feedback.removeAll { $0.mediaId == rec.id }
+                                    let newFeedback = Feedback(
+                                        mediaId: rec.id,
+                                        rating: type == .up ? 5 : 1,
+                                        wouldWatchAgain: type == .up,
+                                        watchedToCompletion: profile.feedback.first(where: { $0.mediaId == rec.id })?.watchedToCompletion ?? false
+                                    )
+                                    profile.feedback.append(newFeedback)
+                                    userProfile = profile
+                                    UserProfileStore.shared.save(profile)
+                                }
+                            },
+                            onStarRating: { rec, rating in
+                                if var profile = userProfile {
+                                    if let idx = profile.feedback.firstIndex(where: { $0.mediaId == rec.id }) {
+                                        profile.feedback[idx].rating = rating
+                                    } else {
+                                        let newFeedback = Feedback(
+                                            mediaId: rec.id,
+                                            rating: rating,
+                                            wouldWatchAgain: rating >= 4,
+                                            watchedToCompletion: false
+                                        )
+                                        profile.feedback.append(newFeedback)
+                                    }
+                                    userProfile = profile
+                                    UserProfileStore.shared.save(profile)
+                                }
+                            },
+                            onMarkWatched: { rec in
+                                if var profile = userProfile {
+                                    if let idx = profile.feedback.firstIndex(where: { $0.mediaId == rec.id }) {
+                                        profile.feedback[idx].watchedToCompletion = true
+                                    } else {
+                                        let newFeedback = Feedback(
+                                            mediaId: rec.id,
+                                            rating: 3,
+                                            wouldWatchAgain: false,
+                                            watchedToCompletion: true
+                                        )
+                                        profile.feedback.append(newFeedback)
+                                    }
+                                    userProfile = profile
+                                    UserProfileStore.shared.save(profile)
+                                }
+                            },
+                            onRemoveFeedback: { rec in
+                                if var profile = userProfile {
+                                    profile.feedback.removeAll { $0.mediaId == rec.id }
+                                    userProfile = profile
+                                    UserProfileStore.shared.save(profile)
+                                }
+                                feedback[rec.id] = nil
+                            },
+                            isLoading: isLoading,
+                            errorMessage: errorMessage
+                        )
                     }
-                    .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
             .navigationTitle("Moodie")
@@ -206,15 +352,21 @@ struct MainAppView: View {
     private func getRecommendations() {
         isLoading = true
         errorMessage = nil
-        recommendations = []
+        recommendations = nil
         recommendationsToShow = 3 // Reset to 3 on new fetch
-        // Use userProfile if available, otherwise fall back to UI state
-        let userPrefs: UserPreferences
+        // Always use current UI state for userPrefs
+        let userPrefs = UserPreferences(
+            time: selectedTime,
+            moods: Array(selectedMoods),
+            genres: Array(selectedGenres),
+            format: selectedFormat,
+            comfortMode: comfortMode,
+            surprise: surprisePick
+        )
         var feedbackMap: [String: String]? = nil
         let liked: [String: Set<String>]? = nil
         let disliked: [String: Set<String>]? = nil
         if let profile = userProfile {
-            userPrefs = profile.preferences
             // Build feedbackMap: [mediaId: "up"/"down"]
             feedbackMap = [:]
             for fb in profile.feedback {
@@ -224,16 +376,6 @@ struct MainAppView: View {
                     feedbackMap?[fb.mediaId] = "down"
                 }
             }
-            // Optionally, build liked/disliked sets by genre, director, etc. (future expansion)
-        } else {
-            userPrefs = UserPreferences(
-                time: selectedTime,
-                moods: Array(selectedMoods),
-                genres: Array(selectedGenres),
-                format: selectedFormat,
-                comfortMode: comfortMode,
-                surprise: surprisePick
-            )
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             isLoading = false
@@ -283,6 +425,7 @@ struct RecommendationCard: View {
     let onStarRating: (Int) -> Void
     let onMarkWatched: () -> Void
     let onRemoveFeedback: () -> Void
+    @State private var showThanks: Bool = false
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let posterURL = rec.posterURL, let url = URL(string: posterURL) {
@@ -349,21 +492,51 @@ struct RecommendationCard: View {
                 }
             }
             HStack(spacing: 24) {
-                Button(action: { onFeedback(.up) }) {
+                Button(action: {
+                    onFeedback(.up)
+                    showThanks = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showThanks = false }
+                }) {
                     Image(systemName: feedback == .up ? "hand.thumbsup.fill" : "hand.thumbsup")
                         .foregroundColor(feedback == .up ? .green : .gray)
                         .font(.title2)
+                        .background(
+                            Circle()
+                                .fill(feedback == .up ? Color.green.opacity(0.2) : Color.clear)
+                                .frame(width: 40, height: 40)
+                        )
                 }
-                Button(action: { onFeedback(.down) }) {
+                .buttonStyle(PlainButtonStyle())
+                Button(action: {
+                    onFeedback(.down)
+                    showThanks = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showThanks = false }
+                }) {
                     Image(systemName: feedback == .down ? "hand.thumbsdown.fill" : "hand.thumbsdown")
                         .foregroundColor(feedback == .down ? .red : .gray)
                         .font(.title2)
+                        .background(
+                            Circle()
+                                .fill(feedback == .down ? Color.red.opacity(0.2) : Color.clear)
+                                .frame(width: 40, height: 40)
+                        )
                 }
+                .buttonStyle(PlainButtonStyle())
                 Button("Remove Feedback", action: onRemoveFeedback)
                     .font(.caption)
                     .foregroundColor(.red)
             }
             .padding(.top, 8)
+            if showThanks || feedback != nil {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundColor(.accentColor)
+                    Text("Thanks for your feedback!")
+                        .font(.caption)
+                        .foregroundColor(.accentColor)
+                }
+                .transition(.opacity)
+            }
         }
         .padding()
         .background(Color(.systemBackground))
@@ -495,6 +668,7 @@ struct PlexLibrarySectionView: View {
 }
 
 struct RecommendationsSection: View {
+    let title: String
     let recommendations: [MediaItem]
     let feedback: [String: FeedbackType]
     let userProfile: UserProfile?
@@ -505,7 +679,7 @@ struct RecommendationsSection: View {
     let isLoading: Bool
     let errorMessage: String?
     var body: some View {
-        Section(header: Text("Recommendations")) {
+        Section(header: Text(title)) {
             if isLoading {
                 ProgressView("Loading recommendations...")
                     .padding()
