@@ -172,7 +172,10 @@ class PlexXMLParser {
                     viewCount: item.viewCount,
                     summary: item.summary,
                     posterURL: urlWithToken,
-                    seriesTitle: item.seriesTitle
+                    seriesTitle: item.seriesTitle,
+                    lastRecommended: item.lastRecommended,
+                    platforms: ["Plex"],
+                    country: "us"
                 )
                 return newItem
             }
@@ -287,7 +290,10 @@ class PlexMediaItemsXMLDelegate: NSObject, XMLParserDelegate {
                 viewCount: viewCount,
                 summary: summary,
                 posterURL: posterURL,
-                seriesTitle: seriesTitle
+                seriesTitle: seriesTitle,
+                lastRecommended: nil,
+                platforms: ["Plex"],
+                country: "us"
             ))
             parsingMediaItem = false
             currentMediaItemAttributes = [:]

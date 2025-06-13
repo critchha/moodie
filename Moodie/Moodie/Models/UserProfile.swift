@@ -6,6 +6,7 @@ struct UserProfile: Codable {
     var feedback: [Feedback] // thumbs up/down and watch feedback
     var watchHistory: [WatchRecord]
     var onboardingAnswers: OnboardingAnswers?
+    var selectedServices: [String] = [] // e.g., ["Netflix", "Hulu"]
 }
 
 struct WatchRecord: Codable {

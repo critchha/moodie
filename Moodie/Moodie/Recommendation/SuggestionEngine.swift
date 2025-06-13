@@ -111,7 +111,7 @@ func getSuggestions(
         let topMovies = Array(topFranchiseMovies.prefix(3))
 
         // TV Shows: one per show (highest scored episode per show)
-        let showItems = scored.map { $0.item }.filter { $0.type == "show" }
+        // let showItems = scored.map { $0.item }.filter { $0.type == "show" } // Removed unused variable
         var seenShows = Set<String>()
         var topShows: [MediaItem] = []
         for (item, _) in scored where item.type == "show" {
@@ -161,7 +161,7 @@ func getSuggestions(
     // Diversity: limit to one episode per show (keep highest-scoring episode per show)
     var seenShows = Set<String>()
     var diverse: [MediaItem] = []
-    for (item, score) in scored {
+    for (item, _) in scored {
         if user.format == "movie" && item.type != "movie" {
             continue // skip non-movies if movie is selected
         }
@@ -181,7 +181,7 @@ func getSuggestions(
 
     // Update lastRecommended for the top results
     let now = Date()
-    var updatedTopResults: [MediaItem] = topResults.map { item in
+    let updatedTopResults: [MediaItem] = topResults.map { item in
         var mutableItem = item
         mutableItem.lastRecommended = now
         return mutableItem

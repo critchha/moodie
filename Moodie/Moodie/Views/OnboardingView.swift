@@ -4,6 +4,9 @@ struct OnboardingView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var isLoggedIn = false
+    @State private var selectedServices: Set<String> = []
+    @State private var showPlexSignIn: Bool = false
+    let allServices = FlixPatrolService.shared.supportedServices + ["Plex"]
     
     var body: some View {
         if isLoggedIn {
@@ -68,6 +71,7 @@ struct OnboardingView: View {
 }
 
 struct OnboardingFlowView: View {
+    let SERVICE_SELECTION_STEP = 0
     var onComplete: (UserProfile) -> Void
     @State private var favoriteTitles: String = ""
     @State private var favoriteGenres: Set<String> = []
@@ -76,6 +80,10 @@ struct OnboardingFlowView: View {
     @State private var preferredDuration: Int = 60
     @State private var userId: String = UUID().uuidString
     @State private var step: Int = 0
+    @State private var selectedServices: Set<String> = []
+    @State private var showPlexSignIn: Bool = false
+    let allServices = ["Netflix", "HBO", "Disney+", "Paramount+", "Apple TV+", "Plex"]
+    @State private var userProfile: UserProfile? = nil
     
     let genreOptions = [
         "Action", "Comedy", "Drama", "Family", "Animation", "Thriller", "Crime", "Romance", "Biography", "Musical", "Mystery", "Historical"
@@ -90,7 +98,40 @@ struct OnboardingFlowView: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
                     .padding(.top, 8)
-                if step == 0 {
+                if step == SERVICE_SELECTION_STEP {
+                    Text("Which streaming services do you subscribe to?")
+                        .font(.title2)
+                    VStack(spacing: 12) {
+                        ForEach(allServices, id: \.self) { service in
+                            Button(action: {
+                                if selectedServices.contains(service) {
+                                    selectedServices.remove(service)
+                                } else {
+                                    selectedServices.insert(service)
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: selectedServices.contains(service) ? "checkmark.square.fill" : "square")
+                                        .foregroundColor(.accentColor)
+                                    Text(service)
+                                        .font(.headline)
+                                    Spacer()
+                                }
+                                .padding(.horizontal)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                    Button("Next") {
+                        if selectedServices.contains("Plex") {
+                            showPlexSignIn = true
+                        } else {
+                            step += 1
+                        }
+                    }
+                    .padding(.top)
+                    .disabled(selectedServices.isEmpty)
+                } else if step == 1 {
                     Text("Welcome! Let's get to know your tastes.")
                         .font(.title2)
                     TextField("Favorite movies or TV shows (comma separated)", text: $favoriteTitles)
@@ -98,12 +139,12 @@ struct OnboardingFlowView: View {
                         .padding(.horizontal)
                     Button("Next") { step += 1 }
                         .padding(.top)
-                } else if step == 1 {
+                } else if step == 2 {
                     Text("Pick your favorite genres")
                         .font(.title2)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack {
-                            ForEach(genreOptions, id: \ .self) { genre in
+                            ForEach(genreOptions, id: \.self) { genre in
                                 GenreChip(label: genre, isSelected: favoriteGenres.contains(genre)) {
                                     if favoriteGenres.contains(genre) {
                                         favoriteGenres.remove(genre)
@@ -117,12 +158,12 @@ struct OnboardingFlowView: View {
                     }
                     Button("Next") { step += 1 }
                         .padding(.top)
-                } else if step == 2 {
+                } else if step == 3 {
                     Text("Any genres you dislike?")
                         .font(.title2)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack {
-                            ForEach(genreOptions, id: \ .self) { genre in
+                            ForEach(genreOptions, id: \.self) { genre in
                                 GenreChip(label: genre, isSelected: dislikedGenres.contains(genre)) {
                                     if dislikedGenres.contains(genre) {
                                         dislikedGenres.remove(genre)
@@ -136,11 +177,11 @@ struct OnboardingFlowView: View {
                     }
                     Button("Next") { step += 1 }
                         .padding(.top)
-                } else if step == 3 {
+                } else if step == 4 {
                     Text("Do you prefer movies, TV shows, or both?")
                         .font(.title2)
                     Picker("Preferred Type", selection: $preferredContentType) {
-                        ForEach(contentTypeOptions, id: \ .self) { type in
+                        ForEach(contentTypeOptions, id: \.self) { type in
                             Text(type.capitalized).tag(type)
                         }
                     }
@@ -148,11 +189,11 @@ struct OnboardingFlowView: View {
                     .padding(.horizontal)
                     Button("Next") { step += 1 }
                         .padding(.top)
-                } else if step == 4 {
+                } else if step == 5 {
                     Text("What's your ideal watch time?")
                         .font(.title2)
                     Picker("Preferred Duration", selection: $preferredDuration) {
-                        ForEach(durationOptions, id: \ .self) { min in
+                        ForEach(durationOptions, id: \.self) { min in
                             Text("\(min) min").tag(min)
                         }
                     }
@@ -164,6 +205,13 @@ struct OnboardingFlowView: View {
             }
             .padding()
             .navigationTitle("Onboarding")
+            .sheet(isPresented: $showPlexSignIn) {
+                PlexSignInView(onComplete: { plexProfile in
+                    var profile = plexProfile
+                    profile.selectedServices = Array(selectedServices.filter { $0 != "Plex" })
+                    onComplete(profile)
+                })
+            }
         }
     }
     
@@ -190,6 +238,18 @@ struct OnboardingFlowView: View {
             onboardingAnswers: onboarding
         )
         onComplete(profile)
+    }
+}
+
+struct PlexSignInView: View {
+    var onComplete: (UserProfile) -> Void
+    var body: some View {
+        VStack {
+            Text("Plex Sign-In Placeholder")
+            Button("Complete Plex Sign-In") {
+                onComplete(UserProfile(userId: UUID().uuidString, preferences: UserPreferences(time: "any", moods: [], genres: [], format: "any", comfortMode: false, surprise: false), feedback: [], watchHistory: [], onboardingAnswers: nil, selectedServices: []))
+            }
+        }
     }
 }
 
