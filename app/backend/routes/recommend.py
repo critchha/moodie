@@ -9,7 +9,6 @@ from sqlalchemy.orm.exc import NoResultFound
 import threading
 import time
 import hashlib
-import os
 
 recommend_bp = Blueprint('recommend', __name__)
 
@@ -245,7 +244,7 @@ def filter_media(media, user):
 
 @recommend_bp.route('/api/v1/recommend', methods=['POST'])
 def recommend():
-    token = session.get('plex_token') or os.environ.get('PLEX_TOKEN')
+    token = session.get('plex_token')
     server_name = session.get('plex_server_name')
     if not token:
         return jsonify({'error': 'Not connected to Plex'}), 401
