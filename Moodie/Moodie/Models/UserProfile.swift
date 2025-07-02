@@ -8,19 +8,15 @@ struct UserProfile: Codable {
     var onboardingAnswers: OnboardingAnswers?
     var selectedServices: [String] = [] // e.g., ["Netflix", "Hulu"]
 
-    // Custom decoder for backward compatibility
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        userId = try container.decode(String.self, forKey: .userId)
-        preferences = try container.decode(UserPreferences.self, forKey: .preferences)
-        feedback = try container.decode([Feedback].self, forKey: .feedback)
-        watchHistory = try container.decode([WatchRecord].self, forKey: .watchHistory)
-        onboardingAnswers = try container.decodeIfPresent(OnboardingAnswers.self, forKey: .onboardingAnswers)
-        selectedServices = try container.decodeIfPresent([String].self, forKey: .selectedServices) ?? []
-    }
-
-    // Default memberwise init
-    init(userId: String, preferences: UserPreferences, feedback: [Feedback], watchHistory: [WatchRecord], onboardingAnswers: OnboardingAnswers?, selectedServices: [String] = []) {
+    // Memberwise initializer for manual construction
+    init(
+        userId: String,
+        preferences: UserPreferences,
+        feedback: [Feedback],
+        watchHistory: [WatchRecord],
+        onboardingAnswers: OnboardingAnswers?,
+        selectedServices: [String] = []
+    ) {
         self.userId = userId
         self.preferences = preferences
         self.feedback = feedback

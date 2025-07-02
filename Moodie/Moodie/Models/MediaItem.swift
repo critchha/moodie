@@ -10,7 +10,6 @@ struct MediaItem: Identifiable, Codable, Hashable {
     let cast: [String]
     let duration: Int // in minutes
     let viewCount: Int
-<<<<<<< HEAD
     var summary: String
     var posterURL: String?
     let seriesTitle: String? // The show/series name for episodes (optional)
@@ -18,8 +17,4 @@ struct MediaItem: Identifiable, Codable, Hashable {
     var platforms: [String] // e.g., ["Netflix", "Hulu"]
     var country: String // e.g., "us"
     var isInTheaters: Bool? // Optional, for TMDB results
-=======
-    let summary: String
-    let posterURL: String?
->>>>>>> parent of 3509d10 (bug fixes to recommendation logic)
 } 

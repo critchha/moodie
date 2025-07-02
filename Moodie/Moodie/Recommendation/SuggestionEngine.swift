@@ -17,13 +17,8 @@ func getSuggestions(
     liked: [String: Set<String>]? = nil,
     disliked: [String: Set<String>]? = nil,
     surprise: Bool = false
-<<<<<<< HEAD
 ) -> SuggestionResult {
     // Enhanced pre-filter by time, format, genre, and mood
-=======
-) -> [MediaItem] {
-    // Pre-filter by time and format
->>>>>>> parent of 3509d10 (bug fixes to recommendation logic)
     let filtered: [MediaItem] = media.filter { item in
         // Time filter
         let isShortEnough: Bool = {
@@ -42,16 +37,12 @@ func getSuggestions(
         }()
         return isShortEnough && isCorrectFormat
     }
-<<<<<<< HEAD
     // Score and sort
-=======
->>>>>>> parent of 3509d10 (bug fixes to recommendation logic)
     var scored: [(item: MediaItem, score: Int)] = filtered.map {
         ($0, scoreItem($0, user: user, feedbackMap: feedbackMap, liked: liked, disliked: disliked, surprise: surprise))
     }
     scored = scored.filter { $0.score > 0 }
     scored.sort { $0.score > $1.score }
-<<<<<<< HEAD
 
     // --- Binge Worthy Mode ---
     if user.time == "open" {
@@ -93,7 +84,6 @@ func getSuggestions(
         let topMovies = Array(topFranchiseMovies.prefix(3))
 
         // TV Shows: one per show (highest scored episode per show)
-        // let showItems = scored.map { $0.item }.filter { $0.type == "show" } // Removed unused variable
         var seenShows = Set<String>()
         var topShows: [MediaItem] = []
         for (item, _) in scored where item.type == "show" {
@@ -123,9 +113,6 @@ func getSuggestions(
     }
 
     // --- Normal Mode ---
-=======
-    
->>>>>>> parent of 3509d10 (bug fixes to recommendation logic)
     // Comfort Mode: prepend top comfort items
     var recommendations: [MediaItem]
     if user.comfortMode {
@@ -142,7 +129,6 @@ func getSuggestions(
     if recommendations.isEmpty {
         recommendations = filtered.sorted { $0.viewCount > $1.viewCount }.prefix(3).map { $0 }
     }
-<<<<<<< HEAD
 
     // Diversity: limit to one episode per show (keep highest-scoring episode per show)
     var seenShows = Set<String>()
@@ -174,8 +160,4 @@ func getSuggestions(
     }
 
     return .normal(updatedTopResults)
-=======
-    
-    return recommendations
->>>>>>> parent of 3509d10 (bug fixes to recommendation logic)
 } 

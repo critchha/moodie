@@ -177,15 +177,11 @@ class PlexXMLParser {
                     duration: item.duration,
                     viewCount: item.viewCount,
                     summary: item.summary,
-<<<<<<< HEAD
                     posterURL: urlWithToken,
                     seriesTitle: item.seriesTitle,
                     lastRecommended: item.lastRecommended,
                     platforms: ["Plex"],
                     country: "us"
-=======
-                    posterURL: urlWithToken
->>>>>>> parent of 3509d10 (bug fixes to recommendation logic)
                 )
                 return newItem
             }
@@ -249,7 +245,6 @@ class PlexMediaItemsXMLDelegate: NSObject, XMLParserDelegate {
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String] = [:]) {
         // Add support for Directory elements with type="show" (TV Shows)
         if elementName == "Video" || elementName == "Movie" || elementName == "Episode" || (elementName == "Directory" && attributeDict["type"] == "show") {
-<<<<<<< HEAD
             parsingMediaItem = true
             currentMediaItemAttributes = attributeDict
             currentGenres = []
@@ -285,46 +280,26 @@ class PlexMediaItemsXMLDelegate: NSObject, XMLParserDelegate {
                     return nil
                 }
             }()
-=======
-            let id = attributeDict["ratingKey"] ?? UUID().uuidString
-            let title = attributeDict["title"] ?? "Untitled"
-            let year = Int(attributeDict["year"] ?? "")
-            let type = attributeDict["type"] ?? (elementName == "Directory" ? "show" : "movie")
-            let genres = (attributeDict["genre"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
-            let directors = (attributeDict["director"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            let cast = (attributeDict["role"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            let duration = Int((attributeDict["duration"] ?? "0")) ?? 0
-            let minutes = duration > 0 ? duration / 60000 : 0 // Plex duration is ms
-            let viewCount = Int(attributeDict["viewCount"] ?? "0") ?? 0
-            let summary = attributeDict["summary"] ?? ""
-            let posterPath = attributeDict["thumb"]
-            let posterURL = (baseURL != nil && posterPath != nil) ? "\(baseURL!)\(posterPath!)?X-Plex-Token=\(attributeDict["token"] ?? "")" : nil
-            if let posterURL = posterURL, posterPrintCount < 5 {
-                print("[DEBUG] Plex posterURL: \(posterURL)")
-                posterPrintCount += 1
-            }
->>>>>>> parent of 3509d10 (bug fixes to recommendation logic)
             items.append(MediaItem(
                 id: id,
                 title: title,
                 year: year,
                 type: type,
-                genres: genres,
+                genres: currentGenres,
                 directors: directors,
                 cast: cast,
                 duration: minutes,
                 viewCount: viewCount,
                 summary: summary,
-<<<<<<< HEAD
                 posterURL: posterURL,
                 seriesTitle: seriesTitle,
                 lastRecommended: nil,
                 platforms: ["Plex"],
                 country: "us"
-=======
-                posterURL: posterURL
->>>>>>> parent of 3509d10 (bug fixes to recommendation logic)
             ))
+            parsingMediaItem = false
+            currentMediaItemAttributes = [:]
+            currentGenres = []
         }
     }
 } 
