@@ -50,15 +50,11 @@ function mapTimeToSession(time: string) {
   return undefined;
 }
 
-const lightBlueClasses = 'bg-blue-300 text-blue-900';
 const defaultTime = '1_2h';
 const defaultMood = 'light_funny';
 const defaultFormat = 'any';
 const defaultSurprise = false;
 const defaultComfort = false;
-
-// Add a helper to trigger animation on selection
-const getPopClass = (selected: boolean) => selected ? 'animate-pop' : '';
 
 function App() {
   const [time, setTime] = useState(defaultTime);
@@ -74,35 +70,19 @@ function App() {
   // Plex connection state
   const [plexConnected, setPlexConnected] = useState(false);
   const [showPlexForm, setShowPlexForm] = useState(false);
-  const getInitialPlexToken = () => {
-    if (typeof window !== 'undefined') {
-      const savedToken = localStorage.getItem('plexToken');
-      if (savedToken) return savedToken;
-    }
-    return process.env.NEXT_PUBLIC_PLEX_TOKEN || '';
-  };
-  const [plexToken, setPlexToken] = useState(getInitialPlexToken());
+  const [plexToken, setPlexToken] = useState('');
   const [plexServerName, setPlexServerName] = useState('');
   const [plexError, setPlexError] = useState<string | null>(null);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [feedbackGiven, setFeedbackGiven] = useState<{ [title: string]: 'up' | 'down' }>({});
 
-  // On mount, check Plex connection status and localStorage/env for token
+  // On mount, check Plex connection status
   useEffect(() => {
     fetch('/api/v1/plex/status', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         setPlexConnected(data.connected);
       });
-    // Prefill plexToken from localStorage or env if not already set
-    if (!plexToken) {
-      const savedToken = localStorage.getItem('plexToken');
-      if (savedToken) {
-        setPlexToken(savedToken);
-      } else if (process.env.NEXT_PUBLIC_PLEX_TOKEN) {
-        setPlexToken(process.env.NEXT_PUBLIC_PLEX_TOKEN);
-      }
-    }
   }, []);
 
   // Debug: log recommendations when they change
@@ -171,7 +151,6 @@ function App() {
       setRecommendations(recs);
       setHasMore(!!data.hasMore);
       setPage(1);
-      // Do NOT reset selections here; only reset on explicit reset
     } catch (err: any) {
       setError(err.message || 'Failed to fetch recommendations');
     } finally {
@@ -210,15 +189,7 @@ function App() {
         recs = data.recommendations;
       }
       recs = recs.map(r => ({ ...r, source: 'primary' }));
-      setRecommendations(prev => {
-        const all = [...prev, ...recs];
-        const seen = new Set();
-        return all.filter(rec => {
-          if (seen.has(rec.title)) return false;
-          seen.add(rec.title);
-          return true;
-        });
-      });
+      setRecommendations(prev => [...prev, ...recs]);
       setHasMore(!!data.hasMore);
       setPage(nextPage);
     } catch (err: any) {
@@ -274,23 +245,11 @@ function App() {
     );
   }
 
-  // Only reset selections when the user presses Reset Options
-  const handleResetOptions = () => {
-    setTime('');
-    setSelectedMoods([]);
-    setFormat('');
-    setSurprise(false);
-    setComfort(false);
-    setSelectedGenres([]);
-  };
-
   return (
     <div className="min-h-screen bg-rich-black text-white px-2 sm:px-4 md:px-6 py-6 md:py-10 flex flex-col items-center justify-center font-inter">
       <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-center">What's your vibe tonight?</h1>
       <p className="text-muted-gray mb-6 md:mb-10 text-center text-base md:text-lg">Let Moodie help you decide what to watch.</p>
 
-      {/*
-      // The Connect Plex button is commented out because the Plex token is now provided at build time via env and does not require user input.
       {!plexConnected ? (
         <>
           <button
@@ -318,7 +277,6 @@ function App() {
                   }
                   setPlexConnected(true);
                   setShowPlexForm(false);
-                  localStorage.setItem('plexToken', plexToken); // Save token to localStorage
                   setPlexToken('');
                   setPlexServerName('');
                 } catch (err: any) {
@@ -350,24 +308,20 @@ function App() {
         </>
       ) : (
         <div className="mb-4 text-green-500">Plex Connected!</div>
-      )
-      */}
-      {plexConnected && (
-        <div className="mb-4 text-green-500">Plex Connected!</div>
       )}
 
-      <div className="w-full max-w-lg md:max-w-2xl space-y-4 md:space-y-6">
+      <div className="w-full max-w-lg md:max-w-2xl space-y-6 md:space-y-8">
         {/* Time Selector */}
         <div>
           <label className="block text-base md:text-lg font-semibold mb-2">Time</label>
-          <div className="flex flex-wrap gap-1 md:gap-2">
+          <div className="flex flex-wrap gap-2 md:gap-3">
             {timeOptions.map(opt => (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => setTime(opt.value)}
                 className={`px-3 py-2 md:px-4 md:py-2 rounded-xl font-medium transition text-sm md:text-base
-                  ${time === opt.value && time !== '' ? lightBlueClasses + ' ' + getPopClass(true) : 'bg-card-bg text-gray-300 hover:bg-accent-blue hover:text-white'}`}
+                  ${time === opt.value ? 'bg-accent-blue text-white' : 'bg-card-bg text-gray-300 hover:bg-accent-blue hover:text-white'}`}
                 aria-pressed={time === opt.value}
               >
                 {opt.label}
@@ -379,14 +333,14 @@ function App() {
         {/* Mood Selector (multi-select) */}
         <div>
           <label className="block text-base md:text-lg font-semibold mb-2">Mood</label>
-          <div className="flex flex-wrap gap-1 md:gap-2">
+          <div className="flex flex-wrap gap-2 md:gap-3">
             {moodOptions.map(opt => (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => handleMoodChange(opt.value)}
                 className={`px-3 py-2 md:px-4 md:py-2 rounded-xl font-medium transition text-sm md:text-base
-                  ${selectedMoods.length > 0 && selectedMoods.includes(opt.value) ? lightBlueClasses + ' ' + getPopClass(true) : 'bg-card-bg text-gray-300 hover:bg-accent-blue hover:text-white'}`}
+                  ${selectedMoods.includes(opt.value) ? 'bg-accent-blue text-white' : 'bg-card-bg text-gray-300 hover:bg-accent-blue hover:text-white'}`}
                 aria-pressed={selectedMoods.includes(opt.value)}
               >
                 {opt.label}
@@ -398,14 +352,14 @@ function App() {
         {/* Genre Selector (multi-select) */}
         <div>
           <label className="block text-base md:text-lg font-semibold mb-2">Genres</label>
-          <div className="flex flex-wrap gap-1 md:gap-2">
+          <div className="flex flex-wrap gap-2 md:gap-3">
             {genreOptions.map(opt => (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => handleGenreChange(opt.value)}
                 className={`px-3 py-2 md:px-4 md:py-2 rounded-xl font-medium transition text-sm md:text-base
-                  ${selectedGenres.length > 0 && selectedGenres.includes(opt.value) ? lightBlueClasses + ' ' + getPopClass(true) : 'bg-card-bg text-gray-300 hover:bg-accent-blue hover:text-white'}`}
+                  ${selectedGenres.includes(opt.value) ? 'bg-accent-blue text-white' : 'bg-card-bg text-gray-300 hover:bg-accent-blue hover:text-white'}`}
                 aria-pressed={selectedGenres.includes(opt.value)}
               >
                 {opt.label}
@@ -415,16 +369,18 @@ function App() {
         </div>
 
         {/* Format + Comfort */}
-        <div className="flex flex-col items-center mb-2">
+        <div className="flex flex-col items-center">
           <label className="block text-base md:text-lg font-semibold mb-2 text-left w-full">Format</label>
-          <div className="flex flex-col sm:flex-row gap-2 md:gap-4 justify-center w-full mb-2 md:mb-4">
+          <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center w-full mb-4 md:mb-6">
             {formatOptions.map(opt => (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => setFormat(opt.value)}
                 className={`flex flex-col items-center justify-center w-full sm:w-40 md:w-48 h-24 md:h-40 px-3 py-2 md:px-6 md:py-3 rounded-xl font-medium transition border-2 text-base md:text-lg
-                  ${format === opt.value && format !== '' ? lightBlueClasses + ' border-blue-300 shadow-lg ' + getPopClass(true) : 'bg-card-bg text-gray-300 border-transparent hover:bg-accent-blue hover:text-white'}`}
+                  ${format === opt.value
+                    ? 'bg-accent-blue text-white border-accent-blue shadow-lg'
+                    : 'bg-card-bg text-gray-300 border-transparent hover:bg-accent-blue hover:text-white'}`}
                 aria-pressed={format === opt.value}
               >
                 {opt.value === 'movie' && <span className="text-2xl md:text-3xl mb-1 md:mb-2">🎬</span>}
@@ -433,8 +389,8 @@ function App() {
               </button>
             ))}
           </div>
-          {/* Checkboxes */}
-          <div className="flex items-center space-x-2 md:space-x-3 mb-2 w-full">
+          {/* Surprise Me Checkbox */}
+          <div className="flex items-center space-x-2 md:space-x-3 mb-2 md:mb-4 w-full">
             <input
               id="surprise"
               type="checkbox"
@@ -444,7 +400,8 @@ function App() {
             />
             <label htmlFor="surprise" className="text-gray-300 text-xs md:text-sm font-medium">Surprise me with something different</label>
           </div>
-          <div className="flex items-center gap-2 md:gap-3 w-full mb-2">
+          {/* Comfort Checkbox */}
+          <div className="flex items-center gap-2 md:gap-3 w-full mb-4 md:mb-8">
             <input
               type="checkbox"
               id="comfort"
@@ -459,8 +416,8 @@ function App() {
           </div>
         </div>
 
-        {/* Submit Button Row */}
-        <div className="pt-2 md:pt-4 flex flex-col md:flex-row gap-2 md:gap-4">
+        {/* Submit Button */}
+        <div className="pt-4 md:pt-6">
           <button
             type="submit"
             className="w-full py-3 text-base md:text-lg font-semibold rounded-xl bg-accent-blue hover:bg-blue-500 transition text-white shadow-card"
@@ -469,14 +426,7 @@ function App() {
           >
             {loading ? 'Loading...' : 'Get Recommendations'}
           </button>
-          <button
-            type="button"
-            className="w-full py-3 text-base md:text-lg font-semibold rounded-xl bg-gray-700 hover:bg-gray-500 transition text-white shadow-card"
-            onClick={handleResetOptions}
-            disabled={loading}
-          >
-            Reset Options
-          </button>
+          {error && <div className="text-red-400 text-center text-sm mt-2">{error}</div>}
         </div>
       </div>
 

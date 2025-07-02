@@ -164,12 +164,6 @@ def get_feedback_map(session_id):
     session.close()
     return feedback_map
 
-# --- Helper for unique deduplication ---
-def get_unique_key(item):
-    # Use ratingKey if available, else fallback to title+year+type
-    return f"{item.get('ratingKey', '')}_{item.get('title', '')}_{item.get('year', '')}_{item.get('type', '')}"
-
-# --- Update get_suggestions to deduplicate by unique key ---
 def get_suggestions(media, user, feedback_map=None, liked=None, disliked=None, surprise=False, page=1):
     scored = [
         {'item': item, 'score': score_item(item, user, feedback_map, liked, disliked, surprise)}
@@ -178,35 +172,39 @@ def get_suggestions(media, user, feedback_map=None, liked=None, disliked=None, s
     logging.info(f"Scored {len(scored)} items")
     scored = [entry for entry in scored if entry['score'] > 0]
     logging.info(f"{len(scored)} items passed score > 0 filter")
+    # Always sort by score DESC, then by title ASC for stability
     scored.sort(key=lambda x: (-x['score'], x['item']['title']))
     N = 10
+    # Only shuffle for first page and if surprise is on
     if page == 1 and surprise:
         random.shuffle(scored)
     elif page == 1 and not surprise:
         top_n = scored[:N]
         random.shuffle(top_n)
         scored = top_n + scored[N:]
+    # For page > 1, do not shuffle at all
     recommendations = [entry['item'] for entry in scored]
     # Hybrid comfort mode: prepend top comfort items if comfortMode is on
     if user.get('comfortMode'):
+        # Find top 3 most-watched items (viewCount >= 3), sorted by viewCount DESC
         comfort_items = sorted(
             [item for item in media if item.get('viewCount', 0) >= 3],
             key=lambda x: -x.get('viewCount', 0)
         )[:3]
-        comfort_keys = set(get_unique_key(item) for item in comfort_items)
-        recommendations = comfort_items + [item for item in recommendations if get_unique_key(item) not in comfort_keys]
+        # Remove any duplicates from recommendations
+        comfort_titles = set(item['title'] for item in comfort_items)
+        recommendations = comfort_items + [item for item in recommendations if item['title'] not in comfort_titles]
     if not recommendations:
         fallback = sorted(media, key=lambda x: x.get('viewCount', 0), reverse=True)[:3]
         logging.info("No recommendations passed filter, using fallback by viewCount")
         recommendations = fallback
-    # Deduplicate by unique key, preserving order
-    seen_keys = set()
+    # Deduplicate by title, preserving order
+    seen_titles = set()
     deduped = []
     for item in recommendations:
-        key = get_unique_key(item)
-        if key not in seen_keys:
+        if item['title'] not in seen_titles:
             deduped.append(item)
-            seen_keys.add(key)
+            seen_titles.add(item['title'])
     logging.info(f"Returning {len(deduped)} recommendations: {[item.get('title', '') for item in deduped]}")
     return deduped
 
@@ -250,14 +248,16 @@ def recommend():
     token = session.get('plex_token') or os.environ.get('PLEX_TOKEN')
     server_name = session.get('plex_server_name')
     if not token:
-        return jsonify({'error': 'Not connected to Plex', 'recommendations': []}), 401
+        return jsonify({'error': 'Not connected to Plex'}), 401
     data = request.get_json() or {}
+    # Pagination params
     try:
         page = int(request.args.get('page', 1))
         size = int(request.args.get('size', 3))
     except Exception:
         page = 1
         size = 3
+    # UserInput: time, moods, genres, format, comfortMode, surprise
     user = {
         'time': data.get('time', '1_2h'),
         'moods': data.get('moods') or ([data.get('mood')] if data.get('mood') else []),
@@ -267,6 +267,7 @@ def recommend():
         'surprise': data.get('surprise', False),
     }
     session_id = session.get('user_id') or session.sid if hasattr(session, 'sid') else request.cookies.get('session')
+    # Check cache
     cached = get_cached_recommendations(str(session_id), user, page, size)
     if cached:
         logging.info(f"Returning cached recommendations for session {session_id}")
@@ -274,24 +275,20 @@ def recommend():
     client = PlexClient()
     try:
         server = client.connect_via_token(token, server_name)
-        # --- Refined TV/movie logic ---
-        items = []
-        user_format = user.get('format', 'any')
-        if user_format == 'movie':
-            # Only include movies
-            items = [item for item in server.library.section('Movies').all() if getattr(item, 'type', None) == 'movie']
-        elif user_format == 'show':
-            # Only include TV shows (not episodes)
-            items = [item for item in server.library.section('TV Shows').all() if getattr(item, 'type', None) == 'show']
+        # Optimize media loading
+        if user['format'] == 'movie':
+            items = server.library.section('Movies').all()
+        elif user['format'] == 'show':
+            items = server.library.section('TV Shows').all()
         else:
-            # For 'any' or unselected, include both movies and shows, not episodes
-            all_items = server.library.all()
-            items = [item for item in all_items if getattr(item, 'type', None) in ('movie', 'show')]
-        logging.info(f"Fetched {len(items)} items from Plex library (format={user_format})")
+            items = server.library.all()
+        logging.info(f"Fetched {len(items)} items from Plex library")
+        for item in items:
+            logging.info(f"Item: {getattr(item, 'title', 'N/A')}, type: {getattr(item, 'type', 'N/A')}, genres: {getattr(item, 'genres', [])}, duration: {getattr(item, 'duration', 0)}, viewCount: {getattr(item, 'viewCount', 0)}")
         media = []
         plex_base_url = server._baseurl if hasattr(server, '_baseurl') else None
         for item in items:
-            try:
+            if hasattr(item, 'type') and item.type in ('movie', 'show'):
                 genres = [g.tag for g in getattr(item, 'genres', [])]
                 duration_min = getattr(item, 'duration', 0) / 60000
                 view_count = getattr(item, 'viewCount', 0)
@@ -310,10 +307,9 @@ def recommend():
                 directors = [d.tag for d in getattr(item, 'directors', [])] if hasattr(item, 'directors') else []
                 cast = [r.tag for r in getattr(item, 'roles', [])] if hasattr(item, 'roles') else []
                 unwatched = view_count == 0
-                rating_key = getattr(item, 'ratingKey', None)
                 media.append({
                     'title': getattr(item, 'title', ''),
-                    'type': getattr(item, 'type', ''),
+                    'type': item.type,
                     'genres': genres,
                     'duration': duration_min,
                     'viewCount': view_count,
@@ -326,10 +322,7 @@ def recommend():
                     'directors': directors,
                     'cast': cast,
                     'unwatched': unwatched,
-                    'ratingKey': rating_key,
                 })
-            except Exception as e:
-                logging.exception(f"Error processing Plex item: {e}")
         logging.info(f"Prepared {len(media)} media items for recommendation scoring.")
         filtered_media = filter_media(media, user)
         if not filtered_media:
@@ -342,15 +335,14 @@ def recommend():
         end = start + size
         paged = suggestions[start:end]
         has_more = end < total
-        result = {'recommendations': paged, 'hasMore': has_more, 'error': None}
+        result = {'recommendations': paged, 'hasMore': has_more}
         set_cached_recommendations(str(session_id), user, page, size, result)
         return jsonify(result), 200
     except AppError as e:
-        logging.error(f"AppError in /api/v1/recommend: {e}")
-        return jsonify({'error': str(e), 'recommendations': []}), e.status_code
+        return jsonify({'error': str(e)}), e.status_code
     except Exception as e:
         logging.exception("Error in /api/v1/recommend endpoint:")
-        return jsonify({'error': str(e), 'recommendations': []}), 500
+        return jsonify({'error': str(e)}), 500
 
 # Optionally, keep the old endpoint for backward compatibility
 @recommend_bp.route('/api/recommend', methods=['POST'])
