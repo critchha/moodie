@@ -1,7 +1,9 @@
 import SwiftUI
 import Foundation
+import Combine
 
 struct MainAppView: View {
+    let initialUserProfile: UserProfile
     // Time options
     let timeOptions: [(label: String, value: String)] = [
         (label: "Less than an hour", value: "under_1h"),
@@ -52,10 +54,21 @@ struct MainAppView: View {
     @State private var mediaLibrary: [MediaItem] = []
     @State private var isLibraryLoading = false
     @State private var libraryError: String?
-    @State private var showOnboarding = false
-    @State private var userProfile: UserProfile? = nil
+    @State private var userProfile: UserProfile?
     @State private var rejectedRecommendationIDs: Set<String> = []
-    @State private var flixPatrolItems: [MediaItem] = []
+    @State private var watchmodeItems: [MediaItem] = []
+    @AppStorage("isOnboarded") private var isOnboarded: Bool = true
+    @State private var tmdbTrendingTitles: [TMDBTrendingTitle] = []
+    @State private var showResetSheet = false
+    @State private var resetMode: ResetMode? = nil
+    @State private var showOnboardingMessage = false
+    @State private var showPlexAuthMessage = false
+    enum ResetMode { case streaming, preferences, all }
+    
+    init(userProfile: UserProfile) {
+        self.initialUserProfile = userProfile
+        _userProfile = State(initialValue: userProfile)
+    }
     
     var timePickerOptions: [PickerOption] {
         timeOptions.map { PickerOption(label: $0.label, value: $0.value) }
@@ -74,110 +87,317 @@ struct MainAppView: View {
     }
 
     var body: some View {
-        // Compute merged and filtered recommendations outside the Form
-        let visibleRecs: [MediaItem] = {
-            guard let profile = userProfile, !profile.selectedServices.isEmpty else { return [] }
-            let usePlex = profile.selectedServices.contains("Plex")
-            let flixServices = profile.selectedServices.filter { $0 != "Plex" }
-            var mergedItems: [String: MediaItem] = [:]
-            if usePlex, let recs = recommendations {
-                let plexItems: [MediaItem]
-                switch recs {
-                case .normal(let items):
-                    plexItems = items
-                case .binge(let binge):
-                    plexItems = binge.movies + binge.shows
-                }
-                for item in plexItems {
-                    mergedItems[item.id] = item
-                }
+        VStack {
+            if showOnboardingMessage {
+                Text("Please complete onboarding to get recommendations.")
+                    .foregroundColor(.red)
             }
-            for item in FlixPatrolService.shared.dedupedItems(for: flixServices) {
-                if var existing = mergedItems[item.id] {
-                    for platform in item.platforms where !existing.platforms.contains(platform) {
-                        existing.platforms.append(platform)
+            if showPlexAuthMessage {
+                Text("Plex is selected but not authenticated. Please sign in to Plex.")
+                    .foregroundColor(.orange)
+            }
+            // Compute merged and filtered recommendations outside the Form
+            let visibleRecs: [MediaItem] = {
+                if let recs = recommendations, let profile = userProfile {
+                    let selectedServices = Set(profile.selectedServices.map { $0.lowercased() })
+                    let filterByService: (MediaItem) -> Bool = { item in
+                        let itemPlatforms = item.platforms.map { $0.lowercased() }
+                        if itemPlatforms.isEmpty || itemPlatforms.contains(where: { $0.isEmpty }) {
+                            return true
+                        }
+                        return !selectedServices.isDisjoint(with: itemPlatforms)
                     }
-                    mergedItems[item.id] = existing
-                } else {
-                    mergedItems[item.id] = item
-                }
-            }
-            let allRecs = Array(mergedItems.values)
-            return allRecs.filter { !rejectedRecommendationIDs.contains($0.id) }
-        }()
-        NavigationView {
-            Form {
-                TimeSection(options: timePickerOptions, selectedTime: $selectedTime)
-                MoodSection(options: moodPickerOptions, selectedMoods: $selectedMoods)
-                FormatSection(options: formatPickerOptions, selectedFormat: $selectedFormat)
-                GenreSection(options: genrePickerOptions, selectedGenres: $selectedGenres)
-                TogglesSection(comfortMode: $comfortMode, surprisePick: $surprisePick)
-                PlexLibrarySectionView(
-                    isLibraryLoading: isLibraryLoading,
-                    libraryError: libraryError,
-                    mediaLibrary: mediaLibrary,
-                    fetchLibrary: fetchLibrary
-                )
-                Section {
-                    Button(action: getRecommendations) {
-                        if isLoading {
-                            ProgressView()
+                    let preferredType = profile.onboardingAnswers?.preferredContentType ?? "movie"
+                    let isBinge = selectedTime == "open"
+                    switch recs {
+                    case .normal(let items):
+                        let filtered = items.filter { filterByService($0) && !rejectedRecommendationIDs.contains($0.id) }
+                        if isBinge {
+                            // Binge: balance between movie franchises and TV series
+                            let movies = filtered.filter { $0.type == "movie" }
+                            let shows = filtered.filter { $0.type == "show" }
+                            let movieFranchises = Dictionary(grouping: movies, by: { $0.seriesTitle?.lowercased() ?? $0.title.lowercased() })
+                            let franchiseMovies = movieFranchises.values.filter { $0.count > 1 }
+                            var franchiseMoviePicks: [MediaItem] = []
+                            for group in franchiseMovies {
+                                if let best = group.first { franchiseMoviePicks.append(best) }
+                            }
+                            let topMovies = Array(franchiseMoviePicks.prefix(5))
+                            let topShows = Array(shows.prefix(5))
+                            return (topMovies + topShows)
                         } else {
-                            Text("Get Recommendations")
-                                .font(.headline)
+                            // Only show user's firm choice, but apply penalty to in-theater movies
+                            let preferred = filtered.filter { $0.type == preferredType }
+                            // Score and sort, penalize in-theater
+                            let scored = preferred.map { item -> (MediaItem, Int) in
+                                var score = 0
+                                if let isInTheaters = item.isInTheaters, isInTheaters {
+                                    score -= 10 // light penalty
+                                }
+                                return (item, score)
+                            }
+                            // Sort by penalty (and fallback to original order)
+                            let sorted = scored.sorted { $0.1 > $1.1 }.map { $0.0 }
+                            let top10 = Array(sorted.prefix(10))
+                            // Find best in-theater movie not in top 10
+                            if let inTheater = sorted.first(where: { ($0.isInTheaters ?? false) && !top10.contains(where: { $0.id == $0.id }) }) {
+                                return top10 + [inTheater]
+                            } else {
+                                return top10
+                            }
+                        }
+                    case .binge(let binge):
+                        let all = (binge.movies + binge.shows).filter { filterByService($0) && !rejectedRecommendationIDs.contains($0.id) }
+                        if isBinge {
+                            let movies = all.filter { $0.type == "movie" }
+                            let shows = all.filter { $0.type == "show" }
+                            let movieFranchises = Dictionary(grouping: movies, by: { $0.seriesTitle?.lowercased() ?? $0.title.lowercased() })
+                            let franchiseMovies = movieFranchises.values.filter { $0.count > 1 }
+                            var franchiseMoviePicks: [MediaItem] = []
+                            for group in franchiseMovies {
+                                if let best = group.first { franchiseMoviePicks.append(best) }
+                            }
+                            let topMovies = Array(franchiseMoviePicks.prefix(5))
+                            let topShows = Array(shows.prefix(5))
+                            return (topMovies + topShows)
+                        } else {
+                            return all.filter { $0.type == preferredType }
                         }
                     }
-                    .disabled(isLoading)
                 }
-                // Only show RecommendationsSection if there are recommendations
-                if !visibleRecs.isEmpty {
-                    RecommendationsSection(
-                        title: "Top 10 Recommendations",
-                        recommendations: Array(visibleRecs.prefix(recommendationsToShow)),
-                        feedback: feedback,
-                        userProfile: userProfile,
-                        onFeedback: { rec, type in
-                            feedback[rec.id] = type
-                            if type == .down {
-                                rejectedRecommendationIDs.insert(rec.id)
-                                if visibleRecs.count > recommendationsToShow {
-                                    recommendationsToShow += 1
-                                }
+                return []
+            }()
+            NavigationView {
+                Form {
+                    TimeSection(options: timePickerOptions, selectedTime: $selectedTime)
+                    MoodSection(options: moodPickerOptions, selectedMoods: $selectedMoods)
+                    FormatSection(options: formatPickerOptions, selectedFormat: $selectedFormat)
+                    GenreSection(options: genrePickerOptions, selectedGenres: $selectedGenres)
+                    TogglesSection(comfortMode: $comfortMode, surprisePick: $surprisePick)
+                    // Only show Plex library if user selected Plex
+                    if let profile = userProfile, profile.selectedServices.contains("Plex") {
+                        PlexLibrarySectionView(
+                            isLibraryLoading: isLibraryLoading,
+                            libraryError: libraryError,
+                            mediaLibrary: mediaLibrary,
+                            fetchLibrary: fetchLibrary
+                        )
+                    }
+                    Section {
+                        Button(action: getRecommendations) {
+                            if isLoading {
+                                ProgressView()
+                            } else {
+                                Text("Get Recommendations")
+                                    .font(.headline)
                             }
-                        },
-                        onStarRating: { _,_ in },
-                        onMarkWatched: { _ in },
-                        onRemoveFeedback: { _ in },
-                        isLoading: isLoading,
-                        errorMessage: errorMessage,
-                        showWatchOn: true
-                    )
+                        }
+                        .disabled(isLoading)
+                    }
+                    // Only show RecommendationsSection if there are recommendations
+                    if !visibleRecs.isEmpty {
+                        RecommendationsSection(
+                            title: "Top 10 Recommendations",
+                            recommendations: Array(visibleRecs.prefix(recommendationsToShow)),
+                            feedback: feedback,
+                            userProfile: userProfile,
+                            onFeedback: { rec, type in
+                                feedback[rec.id] = type
+                                if type == .down {
+                                    rejectedRecommendationIDs.insert(rec.id)
+                                    // Always keep 10 visible
+                                    if visibleRecs.count > recommendationsToShow {
+                                        recommendationsToShow += 1
+                                    }
+                                }
+                            },
+                            onStarRating: { _,_ in },
+                            onMarkWatched: { _ in },
+                            onRemoveFeedback: { _ in },
+                            isLoading: isLoading,
+                            errorMessage: errorMessage,
+                            showWatchOn: true
+                        )
+                    }
+                    Section {
+                        Button(action: { showResetSheet = true }) {
+                            Text("Reset Settings")
+                                .foregroundColor(.red)
+                        }
+                        .actionSheet(isPresented: $showResetSheet) {
+                            ActionSheet(title: Text("Reset Settings"), message: Text("What would you like to reset?"), buttons: [
+                                .default(Text("Reset Streaming Providers")) { resetMode = .streaming },
+                                .default(Text("Reset Preferences")) { resetMode = .preferences },
+                                .destructive(Text("Reset All")) { resetMode = .all },
+                                .cancel()
+                            ])
+                        }
+                    }
+                    Section(header: Text("Trending Now")) {
+                        let _ = { print("[TrendingNow] tmdbTrendingTitles count: \(tmdbTrendingTitles.count)") }()
+                        if tmdbTrendingTitles.isEmpty {
+                            Text("No trending results found.")
+                                .foregroundColor(.secondary)
+                                .padding()
+                        } else {
+                            ForEach(tmdbTrendingTitles) { item in
+                                let _ = { print("[TrendingNow] id=\(item.id), title=\(item.title), type=\(item.type), genres=\(item.genres), platforms=\(item.streamingPlatforms)") }()
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(item.title)
+                                        .font(.headline)
+                                    HStack(spacing: 12) {
+                                        Text(item.type.capitalized)
+                                        if let runtime = item.runtime {
+                                            Text("\(runtime) min")
+                                        }
+                                    }
+                                    if !item.genres.isEmpty {
+                                        Text("Genres: " + item.genres.joined(separator: ", "))
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    if !item.streamingPlatforms.isEmpty {
+                                        Text("Platforms: " + item.streamingPlatforms.joined(separator: ", "))
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    if let isInTheaters = item.isInTheaters, isInTheaters, item.streamingPlatforms.isEmpty {
+                                        Text("In Theaters")
+                                            .font(.caption)
+                                            .foregroundColor(.orange)
+                                            .padding(.vertical, 2)
+                                    }
+                                    Text(item.overview)
+                                        .font(.footnote)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(3)
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                    }
                 }
             }
             .navigationTitle("Moodie")
             .onAppear {
-                if mediaLibrary.isEmpty { fetchLibrary() }
-                if let profile = UserProfileStore.shared.load() {
-                    userProfile = profile
-                    // FlixPatrol: refresh cache and load deduped items
-                    FlixPatrolService.shared.refreshAllCachesIfNeeded(for: profile.selectedServices) {
-                        flixPatrolItems = FlixPatrolService.shared.dedupedItems(for: profile.selectedServices)
+                var loadedProfile = UserProfileStore.shared.load()
+                if loadedProfile == nil {
+                    print("[MainAppView] No user profile found, creating default profile.")
+                    let defaultProfile = UserProfile(
+                        userId: UUID().uuidString,
+                        preferences: UserPreferences(time: "any", moods: [], genres: [], format: "any", comfortMode: false, surprise: false),
+                        feedback: [],
+                        watchHistory: [],
+                        onboardingAnswers: nil,
+                        selectedServices: []
+                    )
+                    UserProfileStore.shared.save(defaultProfile)
+                    loadedProfile = defaultProfile
+                }
+                userProfile = loadedProfile
+                // Fetch trending titles from TMDB
+                TMDBService.shared.fetchTrending { result in
+                    DispatchQueue.main.async {
+                        switch result {
+                        case .success(let titles):
+                            tmdbTrendingTitles = titles
+                            print("[MainAppView] TMDB Trending titles count: \(titles.count)")
+                            for t in titles.prefix(5) {
+                                print("\(t.title) (\(t.type)), duration: \(t.runtime ?? 0), genres: \(t.genres), platforms: \(t.streamingPlatforms), overview: \(t.overview)")
+                            }
+                        case .failure(let error):
+                            print("[MainAppView] Failed to fetch TMDB trending titles: \(error)")
+                        }
                     }
+                }
+                if mediaLibrary.isEmpty, let profile = userProfile, profile.selectedServices.contains("Plex") {
+                    fetchLibrary()
+                }
+                let profile = UserProfileStore.shared.load()
+                if profile.selectedServices.isEmpty {
+                    showOnboardingMessage = true
                 } else {
-                    showOnboarding = true
+                    showOnboardingMessage = false
+                }
+                if profile.selectedServices.contains("Plex") && !PlexService.shared.isAuthenticated {
+                    showPlexAuthMessage = true
+                } else {
+                    showPlexAuthMessage = false
                 }
             }
-            .sheet(isPresented: $showOnboarding) {
-                OnboardingFlowView(onComplete: { profile in
-                    UserProfileStore.shared.save(profile)
-                    userProfile = profile
-                    showOnboarding = false
-                })
+            // Onboarding sheet
+            .sheet(isPresented: Binding(
+                get: { !isOnboarded || resetMode != nil },
+                set: { newValue in
+                    if newValue == false { resetMode = nil; isOnboarded = true }
+                }
+            )) {
+                if !isOnboarded || resetMode == .all {
+                    // Full onboarding
+                    OnboardingFlowView(onComplete: { profile in
+                        print("[MainAppView] Onboarding completed. Saving profile and checking Plex.")
+                        userProfile = profile
+                        UserProfileStore.shared.save(profile)
+                        isOnboarded = true
+                        resetMode = nil
+                        if profile.selectedServices.contains("Plex") {
+                            fetchLibrary()
+                        }
+                    })
+                } else if resetMode == .streaming {
+                    // Only streaming providers
+                    OnboardingFlowView(onComplete: { profile in
+                        // Update only selectedServices, preserve other fields
+                        if var current = userProfile {
+                            current.selectedServices = profile.selectedServices
+                            userProfile = current
+                            UserProfileStore.shared.save(current)
+                            if profile.selectedServices.contains("Plex") {
+                                print("[Onboarding] Plex selected, fetching library after streaming reset.")
+                                fetchLibrary()
+                            }
+                        } else {
+                            userProfile = profile
+                            UserProfileStore.shared.save(profile)
+                            if profile.selectedServices.contains("Plex") {
+                                print("[Onboarding] Plex selected, fetching library after streaming reset (no current profile).")
+                                fetchLibrary()
+                            }
+                        }
+                        resetMode = nil
+                    }, onlyStreaming: true)
+                } else if resetMode == .preferences {
+                    // Only preferences
+                    OnboardingFlowView(onComplete: { profile in
+                        // Update only onboardingAnswers and preferences, preserve selectedServices
+                        if var current = userProfile {
+                            current.onboardingAnswers = profile.onboardingAnswers
+                            current.preferences = profile.preferences
+                            userProfile = current
+                            UserProfileStore.shared.save(current)
+                        } else {
+                            userProfile = profile
+                            UserProfileStore.shared.save(profile)
+                        }
+                        if (userProfile?.selectedServices.contains("Plex") ?? false) {
+                            print("[Onboarding] Plex selected, fetching library after preferences reset.")
+                            fetchLibrary()
+                        }
+                        resetMode = nil
+                    }, onlyPreferences: true)
+                }
             }
+            .onChange(of: selectedTime) { clearRecommendations() }
+            .onChange(of: selectedMoods) { clearRecommendations() }
+            .onChange(of: selectedGenres) { clearRecommendations() }
+            .onChange(of: selectedFormat) { clearRecommendations() }
+            .onChange(of: comfortMode) { clearRecommendations() }
+            .onChange(of: surprisePick) { clearRecommendations() }
         }
     }
     
     private func fetchLibrary() {
+        print("[fetchLibrary] Called fetchLibrary() with userProfile.selectedServices: \(userProfile?.selectedServices ?? [])")
         isLibraryLoading = true
         libraryError = nil
         PlexService.shared.fetchMediaLibrary { result in
@@ -185,8 +405,10 @@ struct MainAppView: View {
                 isLibraryLoading = false
                 switch result {
                 case .success(let items):
+                    print("[fetchLibrary] Loaded \(items.count) items from Plex.")
                     mediaLibrary = items
                 case .failure(let error):
+                    print("[fetchLibrary] Error loading Plex library: \(error.localizedDescription)")
                     libraryError = error.localizedDescription
                 }
             }
@@ -208,32 +430,47 @@ struct MainAppView: View {
             surprise: surprisePick
         )
         var feedbackMap: [String: String]? = nil
-        let liked: [String: Set<String>]? = nil
-        let disliked: [String: Set<String>]? = nil
-        if let profile = userProfile {
-            // Build feedbackMap: [mediaId: "up"/"down"]
-            feedbackMap = [:]
-            for fb in profile.feedback {
-                if fb.rating >= 4 || fb.wouldWatchAgain {
-                    feedbackMap?[fb.mediaId] = "up"
-                } else if fb.rating <= 2 && !fb.wouldWatchAgain {
-                    feedbackMap?[fb.mediaId] = "down"
-                }
+        let liked: [String: Set<String>] = [:]
+        let disliked: [String: Set<String>] = [:]
+        print("[getRecommendations] Plex mediaLibrary count: \(mediaLibrary.count)")
+        if !mediaLibrary.isEmpty { print("[getRecommendations] Plex first: \(mediaLibrary[0])") }
+        print("[getRecommendations] tmdbTrendingTitles count: \(tmdbTrendingTitles.count)")
+        if !tmdbTrendingTitles.isEmpty { print("[getRecommendations] tmdbTrendingTitles first: \(tmdbTrendingTitles[0])") }
+        // Merge and deduplicate Plex and TMDB items by title (case-insensitive)
+        var plexByTitle = [String: MediaItem]()
+        for item in mediaLibrary {
+            plexByTitle[item.title.lowercased()] = item
+        }
+        var merged: [MediaItem] = []
+        // Add Plex items first
+        merged.append(contentsOf: plexByTitle.values)
+        // For TMDB, merge metadata if Plex exists, else add as new
+        for tmdb in tmdbTrendingTitles.map({ $0.toMediaItem() }) {
+            let key = tmdb.title.lowercased()
+            if var plexItem = plexByTitle[key] {
+                // Merge: prefer Plex for playback/platform, TMDB for poster/overview/genres if missing
+                if plexItem.posterURL == nil, let poster = tmdb.posterURL { plexItem.posterURL = poster }
+                if plexItem.summary.isEmpty, !tmdb.summary.isEmpty { plexItem.summary = tmdb.summary }
+                if plexItem.genres.isEmpty, !tmdb.genres.isEmpty { plexItem.genres = tmdb.genres }
+                if plexItem.platforms.isEmpty, !tmdb.platforms.isEmpty { plexItem.platforms = tmdb.platforms + ["Plex"] }
+                merged.removeAll { $0.title.lowercased() == key }
+                merged.append(plexItem)
+            } else {
+                merged.append(tmdb)
             }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            isLoading = false
-            let allRecs = getSuggestions(
-                media: mediaLibrary,
-                user: userPrefs,
-                feedbackMap: feedbackMap,
-                liked: liked,
-                disliked: disliked,
-                surprise: userPrefs.surprise
-            )
-            recommendations = allRecs
-            recommendationsToShow = 10 // Reset to 10 on new fetch
-        }
+        print("[getRecommendations] merged items count: \(merged.count)")
+        if !merged.isEmpty { print("[getRecommendations] merged first: \(merged[0])") }
+        // Filtering (if any)
+        let filtered = merged.filter { _ in true }
+        print("[getRecommendations] filtered recommendations count: \(filtered.count)")
+        if !filtered.isEmpty { print("[getRecommendations] filtered first: \(filtered[0])") }
+        recommendations = .normal(filtered)
+        isLoading = false
+    }
+    
+    private func clearRecommendations() {
+        recommendations = nil
     }
 }
 
@@ -318,6 +555,28 @@ struct RecommendationCard: View {
                     .font(.body)
                     .foregroundColor(.primary)
                     .lineLimit(3)
+            }
+            if let isInTheaters = rec.isInTheaters, isInTheaters, rec.platforms.isEmpty {
+                Text("In Theaters")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                    .padding(.vertical, 2)
+            }
+            if !rec.platforms.isEmpty {
+                HStack(spacing: 8) {
+                    Text("Watch on:")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    ForEach(rec.platforms, id: \.self) { platform in
+                        Text(platform)
+                            .font(.subheadline)
+                            .foregroundColor(.accentColor)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(6)
+                    }
+                }
             }
             HStack(spacing: 8) {
                 ForEach(1...5, id: \ .self) { star in
@@ -501,11 +760,17 @@ struct PlexLibrarySectionView: View {
             } else if mediaLibrary.isEmpty {
                 Text("No media found in your Plex library.")
                     .foregroundColor(.secondary)
-                Button("Reload Library") { fetchLibrary() }
+                Button("Reload Library") {
+                    print("[MainAppView] Reload Plex Library pressed.")
+                    fetchLibrary()
+                }
             } else {
                 Text("Loaded \(mediaLibrary.count) items from Plex.")
                     .foregroundColor(.secondary)
-                Button("Reload Library") { fetchLibrary() }
+                Button("Reload Library") {
+                    print("[MainAppView] Reload Plex Library pressed.")
+                    fetchLibrary()
+                }
             }
         }
     }
@@ -578,7 +843,21 @@ struct RecommendationsSection: View {
 }
 
 #Preview {
-    MainAppView()
+    MainAppView(userProfile: UserProfile(
+        userId: "1",
+        preferences: UserPreferences(
+            time: "any",
+            moods: [],
+            genres: [],
+            format: "any",
+            comfortMode: false,
+            surprise: false
+        ),
+        feedback: [],
+        watchHistory: [],
+        onboardingAnswers: nil,
+        selectedServices: ["Plex"]
+    ))
 }
 
 // Add helper for platform URLs
@@ -605,5 +884,28 @@ extension MediaItem {
                 return (platform, nil)
             }
         }
+    }
+}
+
+extension TMDBTrendingTitle {
+    func toMediaItem() -> MediaItem {
+        MediaItem(
+            id: String(id),
+            title: title,
+            year: nil,
+            type: type,
+            genres: genres,
+            directors: [],
+            cast: [],
+            duration: runtime ?? 0,
+            viewCount: 0,
+            summary: overview,
+            posterURL: posterURL,
+            seriesTitle: nil,
+            lastRecommended: nil,
+            platforms: streamingPlatforms,
+            country: "us",
+            isInTheaters: isInTheaters
+        )
     }
 } 

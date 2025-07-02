@@ -17,59 +17,41 @@ func getSuggestions(
     liked: [String: Set<String>]? = nil,
     disliked: [String: Set<String>]? = nil,
     surprise: Bool = false
+<<<<<<< HEAD
 ) -> SuggestionResult {
     // Enhanced pre-filter by time, format, genre, and mood
+=======
+) -> [MediaItem] {
+    // Pre-filter by time and format
+>>>>>>> parent of 3509d10 (bug fixes to recommendation logic)
     let filtered: [MediaItem] = media.filter { item in
-        // Enhanced time filter for TV shows
-        if item.type == "show" {
-            switch user.time {
-            case "under_1h":
-                if !(item.duration > 0 && item.duration <= 65) { return false }
-            case "open":
-                // For binge, include all shows
-                break
-            default:
-                // For other time prefs, include all shows
-                break
+        // Time filter
+        let isShortEnough: Bool = {
+            if user.time == "under_1h" {
+                return item.duration <= 65 // allow a small buffer for short films
             }
-        } else {
-            // Movie logic as before
-            let isShortEnough: Bool = {
-                if user.time == "under_1h" {
-                    return item.duration <= 65
-                }
-                // Add more time filters if needed
-                return true
-            }()
-            let isCorrectFormat: Bool = {
-                if user.format == "any" { return true }
-                if user.format == "movie" { return item.type == "movie" }
-                if user.format == "show" { return item.type == "show" }
-                return true
-            }()
-            if !(isShortEnough && isCorrectFormat) { return false }
-        }
-        // Normalize genres for comparison
-        let itemGenres = item.genres.map { $0.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) }
-        let userGenres = user.genres.map { $0.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) }
-        if !userGenres.isEmpty {
-            if !itemGenres.contains(where: { userGenres.contains($0) }) {
-                return false
-            }
-        }
-        return true
+            // Add more time filters if needed
+            return true
+        }()
+        // Format filter
+        let isCorrectFormat: Bool = {
+            if user.format == "any" { return true }
+            if user.format == "movie" { return item.type == "movie" }
+            if user.format == "show" { return item.type == "show" }
+            return true
+        }()
+        return isShortEnough && isCorrectFormat
     }
+<<<<<<< HEAD
     // Score and sort
+=======
+>>>>>>> parent of 3509d10 (bug fixes to recommendation logic)
     var scored: [(item: MediaItem, score: Int)] = filtered.map {
-        var score = scoreItem($0, user: user, feedbackMap: feedbackMap, liked: liked, disliked: disliked, surprise: surprise)
-        if user.time == "open", $0.type == "show" {
-            if $0.viewCount == 0 { score += 10 }
-            else if $0.viewCount < 3 { score += 5 }
-        }
-        return ($0, score)
+        ($0, scoreItem($0, user: user, feedbackMap: feedbackMap, liked: liked, disliked: disliked, surprise: surprise))
     }
-    scored = scored.filter { $0.score > -1000 } // Remove items penalized for wrong format
+    scored = scored.filter { $0.score > 0 }
     scored.sort { $0.score > $1.score }
+<<<<<<< HEAD
 
     // --- Binge Worthy Mode ---
     if user.time == "open" {
@@ -141,6 +123,9 @@ func getSuggestions(
     }
 
     // --- Normal Mode ---
+=======
+    
+>>>>>>> parent of 3509d10 (bug fixes to recommendation logic)
     // Comfort Mode: prepend top comfort items
     var recommendations: [MediaItem]
     if user.comfortMode {
@@ -152,11 +137,12 @@ func getSuggestions(
     } else {
         recommendations = scored.map { $0.item }
     }
-
-    // Fallback: if no recommendations, just return the filtered list (already matches genre/mood/format/time)
+    
+    // Fallback: if no recommendations, use most-watched
     if recommendations.isEmpty {
-        recommendations = Array(filtered.prefix(3))
+        recommendations = filtered.sorted { $0.viewCount > $1.viewCount }.prefix(3).map { $0 }
     }
+<<<<<<< HEAD
 
     // Diversity: limit to one episode per show (keep highest-scoring episode per show)
     var seenShows = Set<String>()
@@ -188,4 +174,8 @@ func getSuggestions(
     }
 
     return .normal(updatedTopResults)
+=======
+    
+    return recommendations
+>>>>>>> parent of 3509d10 (bug fixes to recommendation logic)
 } 

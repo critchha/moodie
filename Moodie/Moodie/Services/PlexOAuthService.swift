@@ -173,7 +173,6 @@ extension PlexOAuthService: ASWebAuthenticationPresentationContextProviding {
     }
 }
 
-@MainActor
 class PlexPinXMLDelegate: NSObject, XMLParserDelegate {
     var id: Int?
     var code: String?
@@ -187,7 +186,6 @@ class PlexPinXMLDelegate: NSObject, XMLParserDelegate {
     }
 }
 
-@MainActor
 class PlexPinPollXMLDelegate: NSObject, XMLParserDelegate {
     var authToken: String?
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String] = [:]) {
