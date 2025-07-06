@@ -45,15 +45,17 @@ struct OnboardingAnswers: Codable {
 class UserProfileStore {
     static let shared = UserProfileStore()
     private let filename = "userProfile.json"
-    private var fileURL: URL {
+    var fileURL: URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         return paths[0].appendingPathComponent(filename)
     }
+    // Add a flag to indicate onboarding is in progress
+    var onboardingInProgress: Bool = false
     func save(_ profile: UserProfile) {
         do {
             let data = try JSONEncoder().encode(profile)
             try data.write(to: fileURL)
-            print("[UserProfileStore] Saved profile to \(fileURL.path)")
+            print("[UserProfileStore] Saved profile to \(fileURL.path): \(profile.selectedServices)")
         } catch {
             print("[UserProfileStore] Failed to save profile: \(error)")
         }
@@ -62,14 +64,49 @@ class UserProfileStore {
         do {
             let data = try Data(contentsOf: fileURL)
             let profile = try JSONDecoder().decode(UserProfile.self, from: data)
-            print("[UserProfileStore] Loaded profile from \(fileURL.path)")
+            print("[UserProfileStore] Loaded profile from \(fileURL.path): \(profile.selectedServices)")
             return profile
         } catch {
             print("[UserProfileStore] Failed to load profile: \(error)")
-            let newProfile = UserProfile(userId: UUID().uuidString, preferences: UserPreferences(), feedback: [], watchHistory: [], onboardingAnswers: nil, selectedServices: [])
-            save(newProfile)
-            print("[UserProfileStore] Created and saved new default profile to \(fileURL.path)")
-            return newProfile
+            // Only create and save a new default profile if onboarding is NOT in progress
+            if !onboardingInProgress {
+                let newProfile = UserProfile(
+                    userId: UUID().uuidString,
+                    preferences: UserPreferences(
+                        time: "any",
+                        moods: [],
+                        genres: [],
+                        format: "any",
+                        comfortMode: false,
+                        surprise: false
+                    ),
+                    feedback: [],
+                    watchHistory: [],
+                    onboardingAnswers: nil,
+                    selectedServices: []
+                )
+                save(newProfile)
+                print("[UserProfileStore] Created and saved new default profile to \(fileURL.path)")
+                return newProfile
+            } else {
+                print("[UserProfileStore] Not creating default profile: onboarding in progress")
+                // Return a temporary blank profile (not saved)
+                return UserProfile(
+                    userId: UUID().uuidString,
+                    preferences: UserPreferences(
+                        time: "any",
+                        moods: [],
+                        genres: [],
+                        format: "any",
+                        comfortMode: false,
+                        surprise: false
+                    ),
+                    feedback: [],
+                    watchHistory: [],
+                    onboardingAnswers: nil,
+                    selectedServices: []
+                )
+            }
         }
     }
 } 

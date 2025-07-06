@@ -241,6 +241,9 @@ class PlexMediaItemsXMLDelegate: NSObject, XMLParserDelegate {
     private var currentAttributes: [String: String] = [:]
     var baseURL: String? = nil
     private var posterPrintCount = 0
+    private var parsingMediaItem: Bool = false
+    private var currentMediaItemAttributes: [String: String] = [:]
+    private var currentGenres: [String] = []
     
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String] = [:]) {
         // Add support for Directory elements with type="show" (TV Shows)

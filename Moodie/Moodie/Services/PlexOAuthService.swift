@@ -41,13 +41,15 @@ class PlexOAuthService: NSObject {
                 return
             }
             // Parse XML for <pin id="..." code="..."/>
-            let parser = XMLParser(data: data)
-            let delegate = PlexPinXMLDelegate()
-            parser.delegate = delegate
-            if parser.parse(), let id = delegate.id, let code = delegate.code {
-                completion(.success((id, code)))
-            } else {
-                completion(.failure(NSError(domain: "PlexOAuth", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid PIN response"])))
+            DispatchQueue.main.async {
+                let parser = XMLParser(data: data)
+                let delegate = PlexPinXMLDelegate()
+                parser.delegate = delegate
+                if parser.parse(), let id = delegate.id, let code = delegate.code {
+                    completion(.success((id, code)))
+                } else {
+                    completion(.failure(NSError(domain: "PlexOAuth", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid PIN response"])))
+                }
             }
         }
         task.resume()
@@ -71,6 +73,7 @@ class PlexOAuthService: NSObject {
     // MARK: - Step 3: Poll for Token
     private func pollForToken(completion: @escaping (Result<String, Error>) -> Void) {
         guard let pinId = pinId else {
+            print("[PlexOAuthService] Error: Missing PIN ID")
             completion(.failure(NSError(domain: "PlexOAuth", code: 3, userInfo: [NSLocalizedDescriptionKey: "Missing PIN ID"])))
             return
         }
@@ -86,37 +89,48 @@ class PlexOAuthService: NSObject {
         var attempts = 0
         func poll() {
             let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                if let error = error { completion(.failure(error)); return }
+                if let error = error {
+                    print("[PlexOAuthService] Poll error: \(error)")
+                    completion(.failure(error)); return
+                }
                 guard let data = data else {
                     attempts += 1
+                    print("[PlexOAuthService] Poll attempt \(attempts): No data received.")
                     if attempts < maxAttempts {
                         DispatchQueue.global().asyncAfter(deadline: .now() + 2) { poll() }
                     } else {
+                        print("[PlexOAuthService] Timeout waiting for Plex token after \(attempts) attempts.")
                         completion(.failure(NSError(domain: "PlexOAuth", code: 4, userInfo: [NSLocalizedDescriptionKey: "Timeout waiting for Plex token"])))
                     }
                     return
                 }
-                // Debug print
-                print("Plex PIN poll response:", String(data: data, encoding: .utf8) ?? "nil")
+                print("[PlexOAuthService] Poll attempt \(attempts + 1): Response: ", String(data: data, encoding: .utf8) ?? "nil")
                 // Parse XML for <pin authToken="..."/>
-                let parser = XMLParser(data: data)
-                let delegate = PlexPinPollXMLDelegate()
-                parser.delegate = delegate
-                parser.parse()
-                if let authToken = delegate.authToken {
-                    // Save token securely
-                    let saved = KeychainService.shared.saveToken(authToken)
-                    if saved {
-                        completion(.success(authToken))
+                DispatchQueue.main.async {
+                    let parser = XMLParser(data: data)
+                    let delegate = PlexPinPollXMLDelegate()
+                    parser.delegate = delegate
+                    parser.parse()
+                    if let authToken = delegate.authToken {
+                        print("[PlexOAuthService] Received authToken: \(authToken)")
+                        // Save token securely
+                        let saved = KeychainService.shared.saveToken(authToken)
+                        print("[PlexOAuthService] Keychain saveToken result: \(saved)")
+                        if saved {
+                            completion(.success(authToken))
+                        } else {
+                            print("[PlexOAuthService] Failed to save token to Keychain")
+                            completion(.failure(NSError(domain: "PlexOAuth", code: 5, userInfo: [NSLocalizedDescriptionKey: "Failed to save token to Keychain"])))
+                        }
                     } else {
-                        completion(.failure(NSError(domain: "PlexOAuth", code: 5, userInfo: [NSLocalizedDescriptionKey: "Failed to save token to Keychain"])))
-                    }
-                } else {
-                    attempts += 1
-                    if attempts < maxAttempts {
-                        DispatchQueue.global().asyncAfter(deadline: .now() + 2) { poll() }
-                    } else {
-                        completion(.failure(NSError(domain: "PlexOAuth", code: 4, userInfo: [NSLocalizedDescriptionKey: "Timeout waiting for Plex token"])))
+                        attempts += 1
+                        print("[PlexOAuthService] Poll attempt \(attempts): No authToken yet.")
+                        if attempts < maxAttempts {
+                            DispatchQueue.global().asyncAfter(deadline: .now() + 2) { poll() }
+                        } else {
+                            print("[PlexOAuthService] Timeout waiting for Plex token after \(attempts) attempts.")
+                            completion(.failure(NSError(domain: "PlexOAuth", code: 4, userInfo: [NSLocalizedDescriptionKey: "Timeout waiting for Plex token"])))
+                        }
                     }
                 }
             }

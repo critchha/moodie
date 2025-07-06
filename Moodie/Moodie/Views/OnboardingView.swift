@@ -16,6 +16,7 @@ struct OnboardingFlowView: View {
     @State private var showPlexSignIn: Bool = false
     let allServices = ["Netflix", "HBO", "Disney+", "Paramount+", "Apple TV+", "Plex"]
     @State private var userProfile: UserProfile? = nil
+    @State private var hasCompletedPlexAuth = false
 
     let genreOptions = [
         "Action", "Comedy", "Drama", "Family", "Animation", "Thriller", "Crime", "Romance", "Biography", "Musical", "Mystery", "Historical"
@@ -59,6 +60,7 @@ struct OnboardingFlowView: View {
                         }
                     }
                     Button("Next") {
+                        print("[DEBUG] Next button tapped. selectedServices: \(selectedServices)")
                         if selectedServices.contains("Plex") {
                             showPlexSignIn = true
                         } else {
@@ -133,17 +135,21 @@ struct OnboardingFlowView: View {
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal)
-                    Button("Finish") { completePreferencesOnly() }
-                        .padding(.top)
+                    Button("Finish") {
+                        print("[DEBUG] Finish button tapped. selectedServices: \(selectedServices)")
+                        completePreferencesOnly()
+                    }
+                    .padding(.top)
+                    .disabled(selectedServices.isEmpty || (selectedServices.contains("Plex") && !hasCompletedPlexAuth))
                 }
             }
             .padding()
             .navigationTitle("Onboarding")
             .sheet(isPresented: $showPlexSignIn) {
                 PlexSignInView(onComplete: { plexProfile in
-                    var profile = plexProfile
-                    profile.selectedServices = Array(selectedServices.filter { $0 != "Plex" })
-                    onComplete(profile)
+                    selectedServices.insert("Plex")
+                    hasCompletedPlexAuth = true
+                    print("[DEBUG] Plex sign-in complete. selectedServices: \(selectedServices)")
                 })
             }
         }
@@ -255,6 +261,7 @@ struct OnboardingFlowView: View {
     }
 
     private func completeStreamingOnly() {
+        print("[Onboarding] completeStreamingOnly selectedServices: \(selectedServices)")
         let profile = UserProfile(
             userId: userId,
             preferences: UserPreferences(time: "any", moods: [], genres: [], format: "any", comfortMode: false, surprise: false),
@@ -263,32 +270,30 @@ struct OnboardingFlowView: View {
             onboardingAnswers: nil,
             selectedServices: Array(selectedServices)
         )
+        print("[Onboarding] Saving profile: \(profile.selectedServices)")
+        UserProfileStore.shared.save(profile)
         onComplete(profile)
     }
 
     private func completePreferencesOnly() {
-        let onboarding = OnboardingAnswers(
-            favoriteTitles: favoriteTitles.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) },
-            favoriteGenres: Array(favoriteGenres),
-            dislikedGenres: Array(dislikedGenres),
-            preferredContentType: preferredContentType,
-            preferredDuration: preferredDuration
-        )
-        let profile = UserProfile(
-            userId: userId,
-            preferences: UserPreferences(
-                time: "any",
-                moods: [],
-                genres: Array(favoriteGenres),
-                format: preferredContentType,
-                comfortMode: false,
-                surprise: false
-            ),
-            feedback: [],
-            watchHistory: [],
-            onboardingAnswers: onboarding,
-            selectedServices: []
-        )
+        print("[Onboarding] completePreferencesOnly selectedServices: \(selectedServices)")
+        var profile: UserProfile = {
+            do {
+                return UserProfileStore.shared.load()
+            } catch {
+                return UserProfile(
+                    userId: UUID().uuidString,
+                    preferences: UserPreferences(time: "any", moods: [], genres: [], format: "any", comfortMode: false, surprise: false),
+                    feedback: [],
+                    watchHistory: [],
+                    onboardingAnswers: nil,
+                    selectedServices: []
+                )
+            }
+        }()
+        profile.selectedServices = Array(selectedServices)
+        print("[Onboarding] Saving profile: \(profile.selectedServices)")
+        UserProfileStore.shared.save(profile)
         onComplete(profile)
     }
 }
@@ -297,6 +302,7 @@ struct PlexSignInView: View {
     var onComplete: (UserProfile) -> Void
     @State private var isLoading = false
     @State private var error: String?
+    @AppStorage("isOnboarded") private var isOnboarded: Bool = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -314,7 +320,7 @@ struct PlexSignInView: View {
                             switch result {
                             case .success(_):
                                 // Build a UserProfile and call onComplete
-                                let profile = UserProfile(
+                                var profile = UserProfile(
                                     userId: UUID().uuidString,
                                     preferences: UserPreferences(time: "any", moods: [], genres: [], format: "any", comfortMode: false, surprise: false),
                                     feedback: [],
@@ -322,6 +328,18 @@ struct PlexSignInView: View {
                                     onboardingAnswers: nil,
                                     selectedServices: ["Plex"]
                                 )
+                                // Try to merge with any existing onboarding data
+                                let existingProfile = try? UserProfileStore.shared.load()
+                                if let existingProfile = existingProfile {
+                                    profile.selectedServices = Array(Set(existingProfile.selectedServices).union(["Plex"]))
+                                    profile.preferences = existingProfile.preferences
+                                    profile.onboardingAnswers = existingProfile.onboardingAnswers
+                                    profile.feedback = existingProfile.feedback
+                                    profile.watchHistory = existingProfile.watchHistory
+                                }
+                                print("[PlexSignInView] Saving profile: \(profile.selectedServices)")
+                                UserProfileStore.shared.save(profile)
+                                isOnboarded = true
                                 onComplete(profile)
                             case .failure(let err):
                                 error = err.localizedDescription
@@ -339,6 +357,8 @@ struct PlexSignInView: View {
     }
 }
 
-#Preview {
-    OnboardingFlowView { _ in }
-} 
+struct OnboardingFlowView_Previews: PreviewProvider {
+    static var previews: some View {
+        OnboardingFlowView { _ in }
+    }
+}
